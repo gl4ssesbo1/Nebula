@@ -13,6 +13,7 @@ It is build with modules for each provider and each functionality. As of April 2
 - Enumeration
 - Exploit
 - Cleanup
+The other ones are still empty.
 
 ## Installation
 Nebula is coded in python3.8 and tested on python3.8 and 3.9. It uses boto3 library to access AWS. To install, just install python 3.8+ and install libraries required from *requirements.txt*
