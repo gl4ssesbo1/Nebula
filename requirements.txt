@@ -1,0 +1,10 @@
+boto3
+botocore
+termcolor
+colored
+colorama
+justify
+justifytext
+prompt_toolkit
+awscli
+pypager
