@@ -17,7 +17,7 @@ variables = {
 		"required":"true",
         "description":"The service that will be used to run the module. It cannot be changed."
 	},
-    "USERS":{
+    "USER":{
 		"value":"",
 		"required":"false",
         "description":"The service that will be used to run the module. It cannot be changed."
@@ -35,41 +35,41 @@ def exploit(profile, workspace):
     filename = "./workspaces/{}/{}".format(workspace, file)
     user_list = []
     try:
-        if not variables['USERS']['value'] == "":
-            users = (variables['USERS']['value']).split(",")
-
-            iam_details = profile.get_account_authorization_details(Filter=['User'])
+        if not variables['USER']['value'] == "":
+            users = (variables['USER']['value']).split(",")
+            print (users)
+            iam_details = profile.get_account_authorization_details()
             while iam_details['IsTruncated']:
-                iam_details = profile.get_account_authorization_details(Filter=['User'], Marker=iam_details['Marker'])
+                iam_details = profile.get_account_authorization_details(Marker=iam_details['Marker'])
 
-            for user in users:
-                for iam in iam_details['UserDetailList']:
-                    if user == iam['UserName']:
+            for iam in iam_details['UserDetailList']:
+                for user in users:
+                    if iam['UserName'] == user:
                         user_list.append(iam)
+                        print(user_list)
 
             for iam in user_list:
                 print(colored("------------------------", "yellow", attrs=['bold']))
-                print("{}:\t{}".format(colored("UserName", "yellow", attrs=['bold']), iam['UserName']))
+                print("{}:\t{}".format(colored("IAM", "yellow", attrs=['bold']), iam['UserName']))
                 print(colored("------------------------", "yellow", attrs=['bold']))
                 for key,value in iam.items():
                     if key == "AttachedManagedPolicies":
-                        if iam['AttachedManagedPolicies']:
-                            print("\t{}".format(colored(key, "red", attrs=['bold'])))
-                            for x in value:
-                                for a,b in x.items():
-                                    print("\t\t{}:{}".format(colored(a, "green", attrs=['bold']), b))
-                                print()
-                        else:
-                            print("\t{}: {}".format(colored(key, "red", attrs=['bold']), colored("[]", "blue")))
+                        print("\t{}".format(colored(key, "red", attrs=['bold'])))
+                        for x in value:
+                            for a,b in x.items():
+                                print("\t\t{}:{}".format(colored(a, "green", attrs=['bold']), b))
+                            print()
 
-                    else:
-                        print("\t{}:{}".format(colored(key, "red", attrs=['bold']), colored(value, "blue")))
+                else:
+                    print("\t{}:{}".format(colored(key, "red", attrs=['bold']), colored(value, "blue")))
             
             with open(filename,'w') as outputfile:
                 json.dump(user_list, outputfile, indent=4, default=str)
 
             outputfile.close()
             print(colored("[*] Output written to file", "green"), colored("'{}'".format(filename), "blue"), colored(".", "green"))
+
+
 
         else:
             iam_details = profile.get_account_authorization_details()
