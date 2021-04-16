@@ -250,7 +250,7 @@ To run the module, if it requires credentials, you will need to have imported a 
 Needs Credentials: True
 -----------------------------
 ```
-To run it, just enter **run**. Depending on the output, it will either show a pagainated view, or just print it. 
+To run it, just enter **run**. Depending on the output, it will either show a pagainated view, or just print it. The pagination, uses less binary, which for Windows uses the binary from **https://github.com/jftuga/less-Windows**. A copy of the exe is on less_binary directory.
 The output is also saved on files on the workspace directory:
 ```
 (work1)()(enum/aws_ec2_enum_instances) >>> run
