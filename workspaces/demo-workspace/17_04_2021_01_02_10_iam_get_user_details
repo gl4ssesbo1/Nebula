@@ -1,0 +1,14 @@
+[
+    {
+        "Path": "/",
+        "UserName": "dev-steward",
+        "UserId": "AIDAQ2AETTG75MIGXY4WG",
+        "Arn": "arn:aws:iam::055844247999:user/dev-steward",
+        "CreateDate": "2020-12-18 15:49:57+00:00",
+        "GroupList": [
+            "Developers"
+        ],
+        "AttachedManagedPolicies": [],
+        "Tags": []
+    }
+]

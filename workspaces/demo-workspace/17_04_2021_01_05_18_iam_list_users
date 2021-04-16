@@ -1,0 +1,53 @@
+[
+    {
+        "Path": "/",
+        "UserName": "admin_pappy",
+        "UserId": "AIDAQ2AETTG75UINUAI3P",
+        "Arn": "arn:aws:iam::055844247999:user/admin_pappy",
+        "CreateDate": "2020-12-18 15:16:57+00:00",
+        "PasswordLastUsed": "2021-03-10 09:29:13+00:00"
+    },
+    {
+        "Path": "/",
+        "UserName": "demo-user",
+        "UserId": "AIDAQ2AETTG773EROUPR5",
+        "Arn": "arn:aws:iam::055844247999:user/demo-user",
+        "CreateDate": "2021-04-16 22:32:45+00:00"
+    },
+    {
+        "Path": "/",
+        "UserName": "dev-steward",
+        "UserId": "AIDAQ2AETTG75MIGXY4WG",
+        "Arn": "arn:aws:iam::055844247999:user/dev-steward",
+        "CreateDate": "2020-12-18 15:49:57+00:00"
+    },
+    {
+        "Path": "/",
+        "UserName": "dev_brian",
+        "UserId": "AIDAQ2AETTG767IAP2TDQ",
+        "Arn": "arn:aws:iam::055844247999:user/dev_brian",
+        "CreateDate": "2020-12-18 15:48:57+00:00"
+    },
+    {
+        "Path": "/",
+        "UserName": "iam-todd",
+        "UserId": "AIDAQ2AETTG7Q3EQDHEJ5",
+        "Arn": "arn:aws:iam::055844247999:user/iam-todd",
+        "CreateDate": "2020-12-18 16:00:23+00:00",
+        "PasswordLastUsed": "2021-03-10 09:33:44+00:00"
+    },
+    {
+        "Path": "/",
+        "UserName": "lam-andy",
+        "UserId": "AIDAQ2AETTG7XNFFLYOSK",
+        "Arn": "arn:aws:iam::055844247999:user/lam-andy",
+        "CreateDate": "2020-12-18 15:57:34+00:00"
+    },
+    {
+        "Path": "/",
+        "UserName": "serveradmin",
+        "UserId": "AIDAQ2AETTG7YNRSQ5PKJ",
+        "Arn": "arn:aws:iam::055844247999:user/serveradmin",
+        "CreateDate": "2020-12-18 15:20:53+00:00"
+    }
+]

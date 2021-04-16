@@ -1,0 +1,34 @@
+[
+    {
+        "Path": "/",
+        "UserName": "dev_brian",
+        "UserId": "AIDAQ2AETTG767IAP2TDQ",
+        "Arn": "arn:aws:iam::055844247999:user/dev_brian",
+        "CreateDate": "2020-12-18 15:48:57+00:00",
+        "UserPolicyList": [
+            {
+                "PolicyName": "AssumePolicyForDevBrian",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Sid": "VisualEditor0",
+                            "Effect": "Allow",
+                            "Action": [
+                                "sts:GetSessionToken",
+                                "sts:AssumeRole",
+                                "sts:AssumeRoleWithSAML"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                }
+            }
+        ],
+        "GroupList": [
+            "Developers"
+        ],
+        "AttachedManagedPolicies": [],
+        "Tags": []
+    }
+]
