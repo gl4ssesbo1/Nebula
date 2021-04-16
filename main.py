@@ -29,7 +29,6 @@ import platform
 init()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-f", help="Use a module from a file")
 parser.add_argument("-b", action='store_true', help="Do not print banner")
 args = parser.parse_args()
 
@@ -331,7 +330,7 @@ def main():
 						list2 = []
 
 				indention = 80
-				max_line_length = 100
+				max_line_length = 60
 
 				for i in range(len(List)):
 					out = List[i][0].ljust(indention, ' ')
@@ -340,7 +339,7 @@ def main():
 						for short_line in textwrap.wrap(line, max_line_length):
 							out += ' ' * cur_indent + short_line.lstrip() + "\n"
 							cur_indent = indention
-						print("\t" + str(i) + out)
+						print(out)
 
 			elif command == 'back':
 				module_char = ""
@@ -451,8 +450,10 @@ def main():
 
 					else:
 						if os.path.exists("./workspaces/{}".format(command.split(" ")[2])):
-							os.rmdir("./workspaces/{}".format(command.split(" ")[2]))
-							workspaces.remove(command.split(" ")[2])
+							yo = input(colored("[*] Are you sure you want to delete the workspace? [y/N] ","red"))
+							if yo == 'y' or yo == 'Y':
+								os.rmdir("./workspaces/{}".format(command.split(" ")[2]))
+								workspaces.remove(command.split(" ")[2])
 						else:
 							print(colored("[*] The workstation name is wrong.", "red"))
 
@@ -593,8 +594,14 @@ def main():
 					for x, y in imported_module.author.items():
 						print("\t{}:\t{}".format(colored(x, "red"), colored(y, "blue")))
 
-					print(colored("\nAWSCLI Command:", "yellow", attrs=["bold"]))
+					print()
+					print("{}: {}".format(colored("Needs Credentials", "yellow", attrs=["bold"]),
+										  colored(imported_module.needs_creds, "green")))
 					print(colored("-----------------------------", "yellow", attrs=["bold"]))
+
+					print(colored("\nAWSCLI Command:", "yellow", attrs=["bold"]))
+					print(colored("---------------------"
+								  "--------", "yellow", attrs=["bold"]))
 					aws_comm = imported_module.aws_command
 					print("\t" + aws_comm)
 
@@ -660,7 +667,7 @@ def main():
 						elif ua == "windows":
 							useragent = random.choice(user_agents_windows)
 						elif ua == "custom":
-							useragent = input("Enter the User-Agent you want")
+							useragent = input("Enter the User-Agent you want: ")
 						else:
 							print(colored("[*] Usage: set user-agent <linux | windows | custom>", "red"))
 
@@ -762,7 +769,6 @@ def main():
 							print(json.dumps(sess, indent=4, default=str))
 
 				elif command.split(" ")[1] == 'modules':
-					index = 0
 					for module in show:
 						arr = os.listdir("./module/" + module)
 						for x in arr:
@@ -774,7 +780,7 @@ def main():
 								List = []
 								list2 = []
 								indention = 80
-								max_line_length = 100
+								max_line_length = 60
 
 								mod = module + "/" + x.split(".py")[0]
 								thedir = mod.split("/")[0]
@@ -791,16 +797,15 @@ def main():
 										for short_line in textwrap.wrap(line, max_line_length):
 											out += ' ' * cur_indent + short_line.lstrip() + "\n"
 											cur_indent = indention
-										print("\t" + str(index) + out)
+										print(out)
 
 								List = []
 								list2 = []
-							index += 1
+
 
 				elif command.split(" ")[1] in show:
 					terminal = colored(command.split(" ")[1],"blue")
 					arr = os.listdir("./module/" + command.split(" ")[1])
-					index = 0
 					for x in arr:
 						if "__" in x:
 							continue
@@ -810,7 +815,7 @@ def main():
 							List = []
 							list2 = []
 							indention = 80
-							max_line_length = 100
+							max_line_length = 60
 
 							mod = command.split(" ")[1] + "/" + x.split(".py")[0]
 							thedir = mod.split("/")[0]
@@ -829,11 +834,10 @@ def main():
 									for short_line in textwrap.wrap(line, max_line_length):
 										out += ' ' * cur_indent + short_line.lstrip() + "\n"
 										cur_indent = indention
-									print("\t" + str(index) + out)
+									print(out)
 							List = []
 							list2 = []
 							out = ""
-						index += 1
 				else:
 					print (colored("[*] '{}' is not a valid command".format(command.split(" ")[1]), "red"))
 
