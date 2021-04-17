@@ -846,11 +846,17 @@ def main():
 					print(colored("[*] Correct command is 'dump credentials'", "red"))
 
 				if command.split(" ")[1] == 'credentials':
-					now = datetime.now()
-					dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-					with open("./credentials/{}".format(dt_string), 'w') as outfile:
-						json.dump(all_sessions, outfile)
-						print(colored("[*] Credentials dumped on file '{}'.".format("./credentials/{}".format(dt_string)), "green"))
+					if not all_sessions:
+						print(colored("[*] You have no credentials at the moment. Pease add some first, then save them latter.", "red"))
+					else:
+						now = datetime.now()
+						dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+						if not os.path.exists('./credentials'):
+							os.makedir('./credentials')
+
+						with open("./credentials/{}".format(dt_string), 'w') as outfile:
+							json.dump(all_sessions, outfile)
+							print(colored("[*] Credentials dumped on file '{}'.".format("./credentials/{}".format(dt_string)), "green"))
 				else:
 					print(colored("[*] Correct command is 'dump credentials'", "red"))
 
