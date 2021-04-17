@@ -20,6 +20,9 @@ Nebula is coded in python3.8 and tested on python3.8 and 3.9. It uses boto3 libr
 ```
 python3.8 -m pip install -r requirements.txt 
 ```
+On windows devices, since less is not installed, I got one from **https://github.com/jftuga/less-Windows**
+The prebuilt binary is saved on directory less_binary. Just add that directory to the PATH environment variable and it will be ok.
+
 Then just run *main.py*
 ```
 python3.8 ./main.py
