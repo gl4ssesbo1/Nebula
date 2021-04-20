@@ -15,6 +15,18 @@ It is build with modules for each provider and each functionality. As of April 2
 - Cleanup
 
 ## Installation
+
+### Docker
+To build Docker image run 
+``` 
+docker build -t nebula . 
+```
+and then run main.py through:
+
+```
+docker run -v nebula-ps:/app -ti nebula main.py
+```
+
 Nebula is coded in python3.8 and tested on python3.8 and 3.9. It uses boto3 library to access AWS. To install, just install python 3.8+ and install libraries required from *requirements.txt*
 
 ```
