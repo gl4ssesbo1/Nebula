@@ -20,4 +20,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ardd97/nebula:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nebula:latest
