@@ -1,6 +1,8 @@
 # Nebula
+<img src="./img/logo.png" alt="logo" width="200"/>
+
 Nebula is a Cloud and (hopefully) DevOps Penetration Testing framework. 
-It is build with modules for each provider and each functionality. As of April 2021, it only covers AWS, but is currently an ongoing project and hopefully will continue to grow to test GCP, Azure, Kubernetes, Docker, or automation engines like Ansiable, Terraform, Chef, etc.
+It is build with modules for each provider and each functionality. As of April 2021, it only covers AWS, but is currently an ongoing project and hopefully will continue to grow to test GCP, Azure, Kubernetes, Docker, or automation engines like Ansible, Terraform, Chef, etc.
 
 **Currently covers:**
 - S3 Bucket name bruteforce
@@ -27,7 +29,7 @@ or if you want to build Docker image locally run:
 ``` 
 docker build -t nebula:latest .
 ```
-and then run main.py through:docker run -v nebula-ps:/app -ti nebula:latest main.py
+and then run main.py through:
 
 ```
 docker run -v nebula-ps:/app -ti nebula:latest main.py
@@ -79,7 +81,7 @@ Running *help* command, will give you a list of the commands that can be used:
     Module Commands             Description
     ---------------             -----------
 
-    show module                 List all the modules
+    show modules                List all the modules
     show enum                   List all Enumeration modules
     show exploit                List all Exploit modules
     show persistence            List all Persistence modules
