@@ -28,8 +28,9 @@ import platform
 
 path = os.getcwd() + '\\less_binary'
 
-command = "powershell.exe -c '$env:Path = " + path + " + ;$env:Path'"
-os.popen(command)
+if platform.system() == 'Windows':
+	command = "powershell.exe -c '$env:Path = " + path + " + ;$env:Path'"
+	os.popen(command)
 
 init()
 

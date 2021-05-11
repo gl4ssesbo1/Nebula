@@ -8,3 +8,5 @@ justifytext
 prompt_toolkit
 awscli
 pypager
+requests
+websocket
