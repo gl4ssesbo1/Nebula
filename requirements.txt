@@ -11,4 +11,3 @@ pypager
 requests
 websocket
 PyInquirer
-__future__
