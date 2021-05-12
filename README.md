@@ -19,21 +19,35 @@ It is build with modules for each provider and each functionality. As of April 2
 ## Installation
 
 ### Docker
-Pull Nebula Docker image:
+#### From Dockerhub
+Clone the Nebula Repo from Github and pull Nebula Docker image:
 
 ``` 
+git clone https://github.com/gl4ssesbo1/Nebula
 docker pull gl4ssesbo1/nebula:latest
-```
-or if you want to build Docker image locally run:
-
-``` 
-docker build -t nebula:latest .
 ```
 and then run main.py through:
 
 ```
-docker run -v nebula-ps:/app -ti nebula:latest main.py
+docker run -v Nebula:/app -ti gl4ssesbo1/nebula:latest main.py
 ```
+
+Remember to not forget -v option, because it allows files to be saved on the system even after removing the docker image.
+
+#### Using DockerFile
+Clone the Nebula Repo from Github and build Docker image locally:
+
+``` 
+git clone https://github.com/gl4ssesbo1/Nebula
+docker build -t nebula .
+```
+then run main.py through:
+
+```
+docker run -v Nebula:/app -ti nebula main.py
+```
+
+Remember to not forget -v option, because it allows files to be saved on the system even after removing the docker image.
 
 ### Installed on System
 Nebula is coded in python3.8 and tested on python3.8 and 3.9. It uses boto3 library to access AWS. To install, just install python 3.8+ and install libraries required from *requirements.txt*
