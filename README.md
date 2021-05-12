@@ -55,6 +55,12 @@ Nebula is coded in python3.8 and tested on python3.8 and 3.9. It uses boto3 libr
 ```
 python3.8 -m pip install -r requirements.txt 
 ```
+
+Then install session-manager-plugin. This is needed for SSM modules:
+```
+curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+dpkg -i session-manager-plugin.deb
+```
 On windows devices, since less is not installed, I got one from **https://github.com/jftuga/less-Windows**
 The prebuilt binary is saved on directory less_binary. Just add that directory to the PATH environment variable and it will be ok.
 
