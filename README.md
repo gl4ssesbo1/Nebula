@@ -6,15 +6,20 @@ It is build with modules for each provider and each functionality. As of April 2
 
 **Currently covers:**
 - S3 Bucket name bruteforce
-- IAM, EC2, S3 and Lambda Enumeration
-- IAM, EC2, and S3 exploitation
+- IAM, EC2, S3, STS and Lambda Enumeration
+- IAM, EC2, STS, and S3 exploitation
+- SSM Enumeration + Exploitation
 - Custom HTTP User-Agent
+- Enumerate Read Privileges (working on write privs)
+- Reverse Shell
+- No creds Reconnaisance
 
-**There are currently 50 modules covering:**
+**There are currently 67 modules covering:**
 - Reconnaissance
 - Enumeration
 - Exploit
 - Cleanup
+- Reverse Shell
 
 ## Installation
 
@@ -140,6 +145,12 @@ Running *help* command, will give you a list of the commands that can be used:
     use workspace <wp>          Use one of the workspaces
     remove workspace <wp>       Remove a workspace
 ```
+### Enum Privs
+When you have a set of credentials, you can enter *getuid* to get the user or *enum_user_privs* to check the Read permission of a set of credentials.
+()()(AWS) >>> getuid
+
+()()(AWS) >>> enum_user_privs
+
 ### Modules
 #### Listing modules
 You can list all the modules or specific module:
