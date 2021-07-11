@@ -8,36 +8,6 @@ def banner():
 	disclaimer()
 
 def head():
-	a =  (colored('''
-					___    ,'""""'.
-				    ,"""   """"'      `.
-				   ,'        _.         `._
-				  ,'       ,'              `"""'.
-				 ,'    .-""`.    ,-'            `.
-				,'    (        ,'                :
-			      ,'     ,'           __,            `.
-			,""""'     .' ;-.    ,  ,'  \             `"""".
-		      ,'           `-(   `._(_,'     )_                `.
-		     ,'         ,---. \ @ ;   \ @ _,'                   `.
-		,-""'         ,'      ,--'-    `;'                       `.
-	       ,'            ,'      (      `. ,'                          `.
-	       ;            ,'        \    _,','                            `.
-	      ,'            ;          `--'  ,'                              `.
-	     ,'             ;          __    (                    ,           `.
-	     ;              `____...  `78b   `.                  ,'           ,'
-	     ;    ...----  '' )  _.-  .d8P    `.                ,'    ,'    ,'
-     _....----.        _..--"_.-:.-' .'        `.             ,''.   ,' `--'
-	      `" mGk "" _.-'' .-'`-.:..___...--' `-._      ,-"'   `-'
-	_.--        _.-'    .'   .' .'               `"""""
-  __.-         _.-'     .-'   .'  /
- '          _.-' .-'  .-'        .'
-	_.-'  .-'  .-' .'  .'   /
-    _.-'      .-'   .-'  .'   .'
-_.-'       .-'    .'   .'    /
-       _.-'    .-'   .'    .'
-    .-'            .'
-				Art by Michal 'Goldmoon' Kwasniewski''', "blue",attrs=['bold']))
-
 	print(colored("""
 	                                              ...........                                                           
                                               ...''''''''''''''...                                                      
@@ -133,7 +103,8 @@ def module_count():
 		"azure":0,
 		"o365":0,
 		"docker":0,
-		"kube":0
+		"kube":0,
+		"misc":0
 	}
 	clouds = [
 		"aws",
@@ -231,7 +202,8 @@ def module_count_without_banner():
 		"azure":0,
 		"o365":0,
 		"docker":0,
-		"kube":0
+		"kube":0,
+		"misc":0
 	}
 	clouds = [
 		"aws",
@@ -239,7 +211,8 @@ def module_count_without_banner():
 		"azure",
 		"o365",
         "docker",
-        "kube"
+        "kube",
+		"misc"
 	]
 	for cloud in clouds:
 		module_count = 0
@@ -256,7 +229,7 @@ def module_count_without_banner():
 		nr_of_cloud_modules[cloud] = module_count
 
 	print ("{} aws\t\t{} gcp\t\t{} azure\t\t{} office365".format(nr_of_cloud_modules['aws'], nr_of_cloud_modules['gcp'], nr_of_cloud_modules['azure'], nr_of_cloud_modules['o365']))
-	print ("{} docker\t{} kubernetes".format(nr_of_cloud_modules['docker'], nr_of_cloud_modules['kube']))
+	print ("{} docker\t{} kubernetes\t{} misc".format(nr_of_cloud_modules['docker'], nr_of_cloud_modules['kube'], nr_of_cloud_modules['misc']))
 	print(colored("-------------------------------------------------------------", "green"))
 	print ("{} modules\t{} cleanup\t\t{} detection".format(all_count, nr_of_modules['cleanup'], nr_of_modules['detection']))
 	print ("{} enum\t\t{} exploit\t\t{} persistence".format(nr_of_modules['enum'], nr_of_modules['exploit'],nr_of_modules['persistence']))

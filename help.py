@@ -1,30 +1,11 @@
 from termcolor import colored
 
-# I couldn't get this to work with 2 for loops. Never got the tabs right. if any of you can, be my guest
-help_dict = {
-    "Listing Commands":{
-        "show credentials":"Show credentials configured on the tool",
-        "show enum":"List all Enumeration modules",
-        "show privesc":"List all Privilege Escalation modules",
-        "show persistence":"List all Persistence modules"
-    },
-    "Setting Commands":{
-        "set credentials":"Set IAM credentials to access AWS resources",
-        "set <option>":"Set options for modules. Eg: 'set HOST 1.2.3.4'"
-    },
-    "Module related commands":{
-        "use":"Use a module. Eg: 'use <module name>'",
-        "options":"Show options of a module you have selected",
-        "run":"Run a module you have selected. Eg: 'run <module name>'",
-        "search":"Search for a module via pattern. Eg: 'search s3'"
-    }
-}
-
 def help():
     help_commands()
     module_commands()
     useragent_commands()
     workspace_commands()
+    shell_help()
 
 def specific_help(command):
     if command == 'user-agent':
@@ -35,6 +16,8 @@ def specific_help(command):
         workspace_commands()
     elif command == 'credentials':
         credential_commands()
+    elif command == 'shell':
+        shell_help()
     else:
         print(colored("[*] That help does not exist.", "red"))
 
@@ -48,7 +31,7 @@ def help_commands():
     help module                 Show help for modules
     help workspace              Show help for credentials
     help user-agent             Show help for credentials
-    
+    help shell                  Show help for shell connections
     ''',"yellow"))
 
 def module_commands():
@@ -109,12 +92,25 @@ def credential_commands():
     -------------------         -----------''',"green",attrs=['bold']))
 
     print(colored('''
-    set credentials <cred name> Inser credentials while providing the name as argument
-    set credentials             Inser credentials without providing the name as argument
+    insert credentials <cred name> Inser credentials while providing the name as argument
+    insert credentials             Inser credentials without providing the name as argument
     use credentials <cred name> Use the credentials you want
     show credentials            Show all credentials
     show current-creds          Show credentials you are currently using
     remove credentials          Delete credentials
     import credentials          Import credentials dumped before
     dump credentials            Dump credentials on files stored on directory credentials on Nebula dir
+    getuid                      Get the username, arn, account ID from a set of credentials you have found.
     ''',"yellow"))
+
+def shell_help():
+    print(colored('''
+    Shell commands              Description
+    -------------------         -----------''', "green", attrs=['bold']))
+    print(colored(
+    '''
+    shell check_env             Check the environment you are in, get data and meta-data
+    shell exit                  Kill a connection
+    shell <command>             Run a command on a system. You don't need " on the command, just shell <command1> <command2>
+    ''', "yellow"
+    ))

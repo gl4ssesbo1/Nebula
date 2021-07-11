@@ -1,0 +1,29 @@
+{
+	"SourceType":[
+		"GitHub"
+		],
+	"SourceInfo":
+	[
+		{
+			"owner":"",
+ 			"repository": ""
+			"getOptions": "",
+			"tokenInfo":"{{ssm-secure:secure-string-token}}"
+		}
+	],
+	"InstallDependencies":[
+		"True/False"
+		],
+	"PlaybookFile":[
+		"file_name.yml"
+		],
+	"ExtraVariables":[
+		"key/value_pairs_separated_by_a_space"
+		],
+	"Check":[
+		"True_or_False"
+		],
+	"Verbose":[
+		"-v,-vv,-vvv, or -vvvv"
+		]
+}

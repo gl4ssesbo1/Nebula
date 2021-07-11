@@ -1,0 +1,7 @@
+- hosts: #host group on /etc/ansible/hosts or all
+  tasks:
+  - name: # A name to add to the task. Make it not suspicious
+    become: true
+    become_user: # User to run as. Either a valid user or root (usually ansible has enough privs to run as root)
+    ansible.windows.win_shell: # Command to run
+

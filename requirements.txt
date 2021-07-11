@@ -8,6 +8,9 @@ justifytext
 prompt_toolkit
 awscli
 pypager
-requests
-websocket
-PyInquirer
+nuitka
+psutil
+pyinstaller
+Cython
+crtsh
+scapy

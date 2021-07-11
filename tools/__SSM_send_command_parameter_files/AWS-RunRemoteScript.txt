@@ -1,0 +1,15 @@
+{
+	"sourceType":[
+			"GitHub"
+		],
+	"sourceInfo":[
+		{
+			"owner" : "owner-name",
+			"repository":"repository-name",
+			"path":"path/to/directory"
+		}
+	], 
+	"commandLine":[
+		"ansible-playbook -i \"localhost,\" --check -c local server.yml"
+	]
+}

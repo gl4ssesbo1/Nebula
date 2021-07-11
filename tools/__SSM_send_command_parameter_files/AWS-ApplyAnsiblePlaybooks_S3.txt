@@ -1,0 +1,26 @@
+{
+	"SourceType":["GitHub"],
+	"SourceInfo":
+	[
+		{
+			"owner":"owner_name",
+ 			"repository": "name",
+			"getOptions": "branch:master"
+		}
+	],
+	"InstallDependencies":[
+		"True_or_False"
+		],
+	"PlaybookFile":[
+		"file_name.yml"
+		],
+	"ExtraVariables":[
+		"key/value_pairs_separated_by_a_space"
+		],
+	"Check":[
+		"True_or_False"
+		],
+	"Verbose":[
+		"-v,-vv,-vvv, or -vvvv"
+		]
+}

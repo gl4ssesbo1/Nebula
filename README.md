@@ -171,19 +171,20 @@ You can list all the modules or specific module:
 ```
 
 And like that you can use:
--     show module
--     show enum
--     show exploit
--     show persistence
--     show privesc
--     show reconnaissance
--     show listener
--     show cleanup
--     show detection
--     show detectionbypass
--     show lateralmovement
--     show stager
-
+```
+     show module
+     show enum
+     show exploit
+     show persistence
+     show privesc
+     show reconnaissance
+     show listener
+     show cleanup
+     show detection
+     show detectionbypass
+     show lateralmovement
+     show stager
+```
 #### Searching for modules
 Use **search** command to search modules with a specific word:
 ```
