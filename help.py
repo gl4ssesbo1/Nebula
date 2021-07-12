@@ -101,6 +101,7 @@ def credential_commands():
     import credentials          Import credentials dumped before
     dump credentials            Dump credentials on files stored on directory credentials on Nebula dir
     getuid                      Get the username, arn, account ID from a set of credentials you have found.
+    enum_user_privs             Get the Read Privileges of a set of Credentials
     ''',"yellow"))
 
 def shell_help():
@@ -114,3 +115,4 @@ def shell_help():
     shell <command>             Run a command on a system. You don't need " on the command, just shell <command1> <command2>
     ''', "yellow"
     ))
+

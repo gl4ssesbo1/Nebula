@@ -18,19 +18,19 @@ variables = {
         "description":"The service that will be used to run the module. It cannot be changed."
 	},
 	"HOST": {
-		"value": "s3",
-		"required": "true",
-        "description":"The service that will be used to run the module. It cannot be changed."
-	},
-	"PORT": {
-		"value": "s3",
-		"required": "true",
-        "description":"The service that will be used to run the module. It cannot be changed."
-	}
+        "value": "0.0.0.0",
+        "required": "true",
+        "description": "The Host/IP of the C2 Server."
+    },
+    "PORT": {
+        "value": "",
+        "required": "true",
+        "description": "The C2 Server Port."
+    }
 }
-description = "Description of your Module"
+description = "TCP Listener for Reverse Shell stagers/aws_python_tcp"
 
-aws_command = "aws ec2 describe-launch-templates --region {} --profile {}"
+aws_command = "None"
 
 def exploit(workspace):
 	host = variables['HOST']['value']

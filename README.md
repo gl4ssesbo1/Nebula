@@ -100,7 +100,7 @@ Running *help* command, will give you a list of the commands that can be used:
     help module                 Show help for modules
     help workspace              Show help for credentials
     help user-agent             Show help for credentials
-
+    help shell                  Show help for shell connections
 
 
     Module Commands             Description
@@ -144,12 +144,67 @@ Running *help* command, will give you a list of the commands that can be used:
     create workspace <wp>       Create a workspace
     use workspace <wp>          Use one of the workspaces
     remove workspace <wp>       Remove a workspace
+
+
+    Shell commands              Description
+    -------------------         -----------
+
+    shell check_env             Check the environment you are in, get data and meta-data
+    shell exit                  Kill a connection
+    shell <command>             Run a command on a system. You don't need " on the command, just shell <command1> <command2>
 ```
 ### Enum Privs
 When you have a set of credentials, you can enter *getuid* to get the user or *enum_user_privs* to check the Read permission of a set of credentials.
-()()(AWS) >>> getuid
+#### GetUID
+```
+(test)()(AWS) >>> getuid
+------------------------------------------------
+UserId: A******************Q
+------------------------------------------------
+        UserID: A******************Q
+        Arn: arn:aws:iam::012345678912:user/user_user
+        Account: 012345678912
+[*] Output is saved to './workspaces/test/12_07_2021_02_22_54_getuid_dev_brian'
+```
 
-()()(AWS) >>> enum_user_privs
+If the creds do not have the below privs on himself,
+```
+STS:GetUserIdentity
+IAM:GetUser
+IAM:ListAttachedUserPolicies
+IAM:GetPolicy (for all policies)
+```
+you will get an error:
+```
+[*] An error occurred (AccessDenied) when calling the GetUser operation: User: arn:aws:iam::012345678912:user/user_user is not authorized to perform: iam:GetUser on resource: user user_user
+```
+#### Enum_User_Privs
+This command checks List and Describe Privileges on a set of credentials.
+```
+(test)()(AWS) >>> enum_user_privs
+User: user_user
+        UserID: A******************Q
+        Arn: arn:aws:iam::012345678912:user/user_user
+        Account: 012345678912
+--------------------------
+Service: ec2
+--------------------------
+[*] Trying the 'Describe' functions:
+[*] 'describe_account_attributes' worked!
+[*] 'describe_addresses' worked!
+[*] 'describe_aggregate_id_format' worked!
+[*] 'describe_availability_zones' worked!
+[*] 'describe_bundle_tasks' worked!
+[*] 'describe_capacity_reservations' worked!
+[*] 'describe_client_vpn_endpoints' worked!
+[*] 'describe_coip_pools' worked!
+[*] 'describe_customer_gateways' worked!
+[*] 'describe_dhcp_options' worked!
+[*] 'describe_egress_only_internet_gateways' worked!
+^C[*] Stopping. It might take a while. Please wait.
+[*] Output of the allowed functions is saved to './workspaces/test/12_07_2021_02_24_09_enum_user_privs'
+[*] The list of the allowed functions is saved to './workspaces/test/12_07_2021_02_24_09_allowed_functions'
+```
 
 ### Modules
 #### Listing modules
@@ -312,6 +367,7 @@ The output is also saved on files on the workspace directory:
 (work1)()(enum/aws_ec2_enum_instances) >>> run
 [*] Content dumped on file './workspaces/work1/16_04_2021_18_16_48_ec2_enum_instances'.
 ```
+
 ### Credentials
 ####Inputing Credentials
 Nebula can use both AccessKeyID + SecretKey combination and AccessKeyID + SecretKey+SessionKey combination to authenticate into the infratructure.
@@ -427,6 +483,11 @@ Workspaces:
 
 ()()(AWS) >>>
 ```
+### Reverse Shell
+To create a Reverse Shell, you need to create a stager and run a listener. To use this feature, you need to have Nebula run as root (to open ports).
+#### Stager
+
+
 ### User Agents
 User agents can be set as linux ones, windows ones or custom. To show them, just use *show*.
 ```
