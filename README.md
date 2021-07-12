@@ -34,9 +34,9 @@ docker pull gl4ssesbo1/nebula:latest
 and then run main.py through:
 
 ```
-docker run -v Nebula:/app -ti gl4ssesbo1/nebula:latest main.py
+cd Nebula
+docker run -v $(pwd):/app -ti gl4ssesbo1/nebula:latest main.py
 ```
-
 Remember to not forget -v option, because it allows files to be saved on the system even after removing the docker image.
 
 #### Using DockerFile
@@ -53,6 +53,13 @@ docker run -v Nebula:/app -ti nebula main.py
 ```
 
 Remember to not forget -v option, because it allows files to be saved on the system even after removing the docker image.
+
+#### Adding port mapping
+If you want to run a shell, also add the -p option:
+```
+cd Nebula
+docker run -p <host port>:<container port> -v $(pwd):/app -ti gl4ssesbo1/nebula:latest main.py
+```
 
 ### Installed on System
 Nebula is coded in python3.8 and tested on python3.8 and 3.9. It uses boto3 library to access AWS. To install, just install python 3.8+ and install libraries required from *requirements.txt*
@@ -486,7 +493,100 @@ Workspaces:
 ### Reverse Shell
 To create a Reverse Shell, you need to create a stager and run a listener. To use this feature, you need to have Nebula run as root (to open ports).
 #### Stager
+To generate a stager, use modules on *stagers*:
+```
+()()(AWS) >>> use module stager/aws_python_tcp
+()()(stager/aws_python_tcp) >>> options
+Desctiption:
+-----------------------------
+        The TCP Reverse Shell that is used by listeners/aws_python_tcp_listener
 
+Author:
+-----------------------------
+        name:   gl4ssesbo1
+        twitter:        https://twitter.com/gl4ssesbo1
+        github: https://github.com/gl4ssesbo1
+        blog:   https://www.pepperclipp.com/
+
+Needs Credentials: False
+-----------------------------
+
+AWSCLI Command:
+-----------------------------
+        None
+
+Options:
+-----------------------------
+        SERVICE:        none
+                Required: true
+                Description: The service that will be used to run the module. It cannot be changed.
+
+        HOST:
+                Required: true
+                Description: The Host/IP of the C2 Server.
+
+        PORT:
+                Required: true
+                Description: The C2 Server Port.
+
+        FORMAT:
+                Required: true
+                Description: The format of the stager. Currently only allows 'py' for Python and 'elf' for ELF Binary.
+
+        CALLBACK-TIME:  None
+                Required: true
+                Description: The time in seconds between callbacks from Stager. The Stager calls back even if the server crashes or is stoped in a loop.
+
+        OUTPUT-FILE-NAME:
+                Required: true
+                Description: The name of the stager output file.
+```
+The options to fill are:
+   - **HOST**: The IP or domain of the C2 Server
+   - **Port**: The C2 Server Port
+   - **Format**: Currently only supports python raw file and elf binary
+   - **Callback-Time**: The time in seconds for which the sessions should call back. It calls back even if a current session is up, and even if the server crushes or is closed, so that you don't loose access to the machine.
+   - **Output File Name**: The name of the output file.
+
+Running the module will generate a stager saved on **./workspaces/workspacename/stagername**
+
+#### Listener
+The listener is simple. Just configure Host (by default set to 0.0.0.0) and Port and it creates the server. To run the listener, you need to have Nebula run as root.
+```
+()()(stager/aws_python_tcp) >>> use module listeners/aws_python_tcp_listener
+()()(listeners/aws_python_tcp_listener) >>> options
+Desctiption:
+-----------------------------
+        TCP Listener for Reverse Shell stagers/aws_python_tcp
+
+Author:
+-----------------------------
+        name:   gl4ssesbo1
+        twitter:        https://twitter.com/gl4ssesbo1
+        github: https://github.com/gl4ssesbo1
+        blog:   https://www.pepperclipp.com/
+
+Needs Credentials: False
+-----------------------------
+
+AWSCLI Command:
+-----------------------------
+        None
+
+Options:
+-----------------------------
+        SERVICE:        none
+                Required: true
+                Description: The service that will be used to run the module. It cannot be changed.
+
+        HOST:   0.0.0.0
+                Required: true
+                Description: The Host/IP of the C2 Server.
+
+        PORT:
+                Required: true
+                Description: The C2 Server Port.
+```
 
 ### User Agents
 User agents can be set as linux ones, windows ones or custom. To show them, just use *show*.
