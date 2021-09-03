@@ -458,13 +458,14 @@ def main(workspace, particle, terminal, p, s):
                 comms['use']['particle'][key] = None
                 comms['kill']['particle'][key] = None
                 comms['rename']['particle'][x] = None
-
-            partdir = os.listdir('./module/listeners/__listeners/.particles')
-            for y in partdir:
-                if not os.path.isdir(y):
-                    with open("./module/listeners/__listeners/.particles/{}".format(y), 'r') as part_file:
-                        particles.update(json.load(part_file))
-                    part_file.close()
+            
+            if os.exists('./module/listeners/__listeners/.particles'):
+                partdir = os.listdir('./module/listeners/__listeners/.particles')
+                for y in partdir:
+                    if not os.path.isdir(y):
+                        with open("./module/listeners/__listeners/.particles/{}".format(y), 'r') as part_file:
+                            particles.update(json.load(part_file))
+                        part_file.close()
 
             if command == None or command == "":
                 com = "({})({})({}) >>> ".format(colored(workspace,"green"),colored(particle,"red"), terminal)
