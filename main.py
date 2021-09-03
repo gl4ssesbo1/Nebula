@@ -459,7 +459,7 @@ def main(workspace, particle, terminal, p, s):
                 comms['kill']['particle'][key] = None
                 comms['rename']['particle'][x] = None
             
-            if os.exists('./module/listeners/__listeners/.particles'):
+            if os.path.exists('./module/listeners/__listeners/.particles'):
                 partdir = os.listdir('./module/listeners/__listeners/.particles')
                 for y in partdir:
                     if not os.path.isdir(y):
