@@ -6,7 +6,7 @@ import json
 import re
 import socket
 import ipaddress
-from __ip_source.ip_ranges import IP_RANGE
+from __ip_source.AWS_IP_Ranges import AWS_IP_RANGE
 
 author = {
     "name":"gl4ssesbo1",
@@ -109,7 +109,7 @@ def exploit(workspace):
 		if ipv4:
 			for ip in ipv6:
 				an_address = ipaddress.ip_address(ip)
-				for ip6 in IP_RANGE['ipv6_prefixes']:
+				for ip6 in AWS_IP_RANGE['ipv6_prefixes']:
 					a_network = ipaddress.ip_network(ip6['ipv6_prefix'])
 
 					if an_address in a_network:
@@ -130,7 +130,7 @@ def exploit(workspace):
 		if ipv4:
 			for ip in ipv4:
 				an_address = ipaddress.ip_address(ip)
-				for ip4 in IP_RANGE['prefixes']:
+				for ip4 in AWS_IP_RANGE['prefixes']:
 					a_network = ipaddress.ip_network(ip4['ip_prefix'])
 
 					if an_address in a_network:

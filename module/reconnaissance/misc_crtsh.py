@@ -77,7 +77,6 @@ def exploit(workspace):
 
 	domain = variables['DOMAIN']['value']
 	json_data = crtshAPI().search(domain)
-
 	for certs in json_data:
 		nv = (certs['name_value']).split("\n")
 		certs['name_value'] = nv
@@ -106,10 +105,10 @@ def exploit(workspace):
 		json.dump(json_data, outfile, indent=4, default=str)
 		print(colored("[*] Content dumped on file '{}'.".format(filename), "green"))
 
-	title_name = ""
 	output += colored("---------------------------------\n", "yellow", attrs=['bold'])
 	for data in json_data:
 		output += colored("{}: {}\n".format("Common Name", data["common_name"]), "yellow", attrs=['bold'])
 		list_dictionary(data, n_tab)
 		output += colored("---------------------------------\n", "yellow", attrs=['bold'])
 	pipepager(output, "less -R")
+	output = ""

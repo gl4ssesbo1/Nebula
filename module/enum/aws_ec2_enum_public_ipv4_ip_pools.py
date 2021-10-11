@@ -24,7 +24,41 @@ description = "Lists the pool of public IPs configured. Uses describe_public_ipv
 
 aws_command = "aws ec2 describe-public-ipv4-pools --region <region> --profile <profile>"
 
+colors = [
+    "not-used",
+    "red",
+    "blue",
+    "yellow",
+    "green",
+    "magenta",
+    "cyan",
+    "white"
+]
+
+output = ""
+
+def list_dictionary(d, n_tab):
+	global output
+	if isinstance(d, list):
+		n_tab += 1
+		for i in d:
+			if not isinstance(i, list) and not isinstance(i, dict):
+				output += ("{}{}\n".format("\t" * n_tab, colored(i, colors[n_tab])))
+			else:
+				list_dictionary(i, n_tab)
+	elif isinstance(d, dict):
+		n_tab+=1
+		for key, value in d.items():
+			if not isinstance(value, dict) and not isinstance(value, list):
+				output += ("{}{}: {}\n".format("\t"*n_tab, colored(key, colors[n_tab], attrs=['bold']) , colored(value, colors[n_tab+1])))
+			else:
+				output += ("{}{}:\n".format("\t"*n_tab, colored(key, colors[n_tab], attrs=['bold'])))
+				list_dictionary(value, n_tab)
+
 def exploit(profile, workspace):
+	n_tab = 0
+	global output
+
 	dt_string = (datetime.now()).strftime("%d_%m_%Y_%H_%M_%S")
 	file = "{}_ec2_enum_public_ipv4_ip_pools".format(dt_string)
 	filename = "./workspaces/{}/{}".format(workspace, file)
@@ -38,17 +72,19 @@ def exploit(profile, workspace):
 			json.dump(response, user_filename, indent=4, default=str)
 		print(colored("[*] IP Pools output is dumped on file '{}'.".format(filename),"yellow"))
 		
-		for pool in response:
-			output += ("------------------------------\n")
-			output += ("{} {}\n".format(colored("PoolId:","yellow",attrs=['bold']), pool['PoolId']))
-			output += ("------------------------------\n")
-			output += ("\t{}:\n".format(colored("PoolAddressRanges:","red",attrs=['bold'])))
-			for address in pool['PoolAddressRanges']:
-				for key,value in address.items():
-					output += ("\t{}\t{}\n".format(colored(key,"blue",attrs=['bold']),colored(value,"white")))
-				
-			output += ("\t{}\t{}\n".format(colored("TotalAddressCount:","red",attrs=['bold']),colored(pool['TotalAddressCount'],"blue")))
-			output += ("\t{}\t{}\n".format(colored("TotalAvailableAddressCount:","red",attrs=['bold']),colored(pool['TotalAvailableAddressCount'],"blue")))
-			output += "\n"
+		if isinstance(response, list):
+			output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+			for data in response:
+				output += colored("PublicIp: {}\n".format(response['PoolId']), "yellow", attrs=['bold'])
+				output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+				list_dictionary(data, n_tab)
+				output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+		else:
+			output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+			output += colored("PublicIp: {}\n".format(response['PoolId']), "yellow", attrs=['bold'])
+			output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+			list_dictionary(response, n_tab)
+			output += colored("---------------------------------\n", "yellow", attrs=['bold'])
 
 		pipepager(output, cmd='less -R')
+		output = ""

