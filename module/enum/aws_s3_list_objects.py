@@ -39,7 +39,7 @@ def exploit(profile, workspace):
 	contents = {}
 	now = datetime.now()
 	dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-	file = "{}_iam_enum_all".format(dt_string)
+	file = "{}_s3_list_objects".format(dt_string)
 	filename = "./workspaces/{}/{}".format(workspace, file)
 
 	json_data = {}

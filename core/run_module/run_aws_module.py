@@ -20,7 +20,7 @@ def enter_session(session_name, region, service):
     boto_session = boto3.session.Session(profile_name=session_name, region_name=region)
     return boto_session.client(service)
 
-def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragent):
+def run_aws_module(imported_module, sess, cred_prof, workspace, useragent):
     service = imported_module.variables['SERVICE']['value']
     if imported_module.needs_creds:
         c = 0
@@ -34,25 +34,23 @@ def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragen
             ))
             c = 1
         else:
-            for sess in all_sessions:
-                if sess['profile'] == cred_prof:
-                    for key, value in sess.items():
-                        if key == 'session_token':
-                            continue
-                        elif key == 'region' and value == "":
-                            print("{}{}{}".format(
-                                colored("[*] No region set. Use '", 'red'),
-                                colored("set region <region>", "blue"),
-                                colored("' to set a region.", "red")
-                            ))
-                            c = 1
-                        elif value == "":
-                            print("{}{}{}".format(
-                                colored("[*] '", 'red'),
-                                colored("", "blue"),
-                                colored("' not set. Check credentials.", "red")
-                            ))
-                            c = 1
+            for key, value in sess.items():
+                if key == 'session_token':
+                    continue
+                elif key == 'region' and value == "":
+                    print("{}{}{}".format(
+                        colored("[*] No region set. Use '", 'red'),
+                        colored("set region <region>", "blue"),
+                        colored("' to set a region.", "red")
+                    ))
+                    c = 1
+                elif value == "":
+                    print("{}{}{}".format(
+                        colored("[*] '", 'red'),
+                        colored("", "blue"),
+                        colored("' not set. Check credentials.", "red")
+                    ))
+                    c = 1
 
         if c == 0:
             env_aws = {}
@@ -67,8 +65,8 @@ def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragen
                 del os.environ['AWS_SECRET_KEY']
             os.environ['AWS_SECRET_KEY'] = sess['secret_key']
 
-            if 'session_token' in sess and sess['session_token'] != "":
-                if os.environ.get('AWS_SESSION_TOKEN'):
+            if os.environ.get('AWS_SESSION_TOKEN'):
+                if 'session_token' in sess and sess['session_token'] != "":
                     env_aws['AWS_SESSION_TOKEN'] = os.environ.get('AWS_SESSION_TOKEN')
                     del os.environ['AWS_SESSION_TOKEN']
                 os.environ['AWS_SESSION_TOKEN'] = sess['session_token']
@@ -125,5 +123,7 @@ def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragen
                 os.environ['AWS_SECRET_KEY'] = env_aws['AWS_SECRET_KEY']
                 os.environ['AWS_REGION'] = env_aws['AWS_REGION']
                 os.environ['AWS_SESSION_TOKEN'] = env_aws['AWS_SESSION_TOKEN']
+
+            del env_aws
     else:
         imported_module.exploit(workspace)

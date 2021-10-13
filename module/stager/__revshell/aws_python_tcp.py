@@ -1,4 +1,4 @@
-import os, base64
+import os
 import socket, boto3
 import sys
 import base64
@@ -465,4 +465,3 @@ else:
         socket_create()
     except socket.error:
         exit()
-

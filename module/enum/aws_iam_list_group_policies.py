@@ -40,9 +40,9 @@ def exploit(profile, workspace):
         )
 
         while response['IsTruncated']:
-            response = profile.list_attached_group_policies(
+            response.extend(profile.list_attached_group_policies(
                 Marker=response['Marker']
-            )
+            ))
 
         with open(filename,'w') as outputfile:
             json.dump(response, outputfile, indent=4, default=str)

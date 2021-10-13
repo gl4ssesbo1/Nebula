@@ -1,9 +1,12 @@
-FROM python:3.8-slim-buster
+FROM python:3.9
+#FROM python:3.8-slim-buster
 
 WORKDIR /app
 
 COPY . .
 
+RUN apt-get update && apt-get upgrade -y
+RUN apt install python3-dev -y
 RUN pip3 install -r requirements.txt
 RUN apt update && apt install awscli -y
 RUN apt-get update; apt-get install curl -y

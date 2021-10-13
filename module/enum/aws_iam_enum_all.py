@@ -75,12 +75,11 @@ def exploit(profile, workspace):
         iam_details = {}
         response = profile.get_account_authorization_details()
         iam_details = response
-        #print("hello")
-        #print(iam_details)
+
 
         while response['IsTruncated']:
            response = profile.get_account_authorization_details(
-                Marker=iam_details['Marker']
+                Marker=response['Marker']
             )
            if response.get('UserDetailList'):
                (iam_details['UserDetailList']).extend(response['UserDetailList'])
@@ -90,7 +89,7 @@ def exploit(profile, workspace):
                (iam_details['RoleDetailList']).extend(response['RoleDetailList'])
            if response.get('Policies'):
                (iam_details['Policies']).extend(response['Policies'])
-        #print(iam_details)
+
         iam['UserDetailList'] = iam_details['UserDetailList']
         iam['GroupDetailList'] = iam_details['GroupDetailList']
         iam['RoleDetailList'] = iam_details['RoleDetailList']

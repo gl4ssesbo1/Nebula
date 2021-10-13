@@ -8,6 +8,11 @@ import botocore
 SERVICES = [
     "s3",
     "ec2",
+    "iam",
+    "sts",
+    "lambda",
+    "ecr",
+    "eks",
     "accessanalyzer",
     "acm",
     "acm-pca",

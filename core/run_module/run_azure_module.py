@@ -1,4 +1,4 @@
-import azure.identity
+#import azure.identity
 
 '''
 + DeviceCode

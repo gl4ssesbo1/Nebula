@@ -69,7 +69,7 @@ def list_dictionary(d, n_tab):
 def exploit(profile, workspace):
     now = datetime.now()
     dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-    file = "{}_iam_enum_all".format(dt_string)
+    file = "{}_s3_get_object_acl".format(dt_string)
     filename = "./workspaces/{}/{}".format(workspace, file)
     bucket = variables['BUCKET']['value']
     file_key = variables['KEY']['value']

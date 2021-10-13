@@ -26,7 +26,7 @@ aws_command = "aws s3api list-buckets --query \"Buckets[].Name\" --region <regio
 def exploit(profile, workspace):
 	now = datetime.now()
 	dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-	file = "{}_ec2_enum_instances".format(dt_string)
+	file = "{}_s3_list_buckets".format(dt_string)
 	filename = "./workspaces/{}/{}".format(workspace, file)
 	json_data = {}
 

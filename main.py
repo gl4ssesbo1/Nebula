@@ -696,7 +696,10 @@ def main(workspace, particle, terminal, p, s):
                 if ready:
                     for sess in all_sessions:
                         if sess['profile'] == cred_prof:
-                            enum_privs(sess, workspace)
+                            if sess['region'] == "":
+                                print(colored("[*] Set the region also: set region <region>", "red"))
+                            else:
+                                enum_privs(sess, workspace)
 
             elif command == 'enum_privesc':
                 ready = False
@@ -1026,7 +1029,9 @@ def main(workspace, particle, terminal, p, s):
                             m_name = (module_char.split("/")[1]).split("_")[0]
                             if m_name == 'aws':
                                 try:
-                                    core.run_module.run_aws_module.run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragent)
+                                    for sess in all_sessions:
+                                        if sess['profile'] == cred_prof:
+                                            core.run_module.run_aws_module.run_aws_module(imported_module, sess, cred_prof, workspace, useragent)
 
                                 except:
                                     e = sys.exc_info()
@@ -1581,35 +1586,35 @@ def main(workspace, particle, terminal, p, s):
                 elif command.split(" ")[1] == 'aws-credentials':
                     profile_name = ""
                     if len(command.split(" ")) == 2:
-                        profile_name = input("Profile Name: ")
+                        print(colored("[*] The right command is: set aws-credentials <profile name>", "red"))
                     elif len(command.split(" ")) > 2:
                         print("Profile Name: {}".format(command.split(" ")[2]))
                         profile_name = command.split(" ")[2]
 
-                    access_key_id = input("Access Key ID: ")
-                    secret_key = input("Secret Key ID: ")
+                        access_key_id = input("Access Key ID: ")
+                        secret_key = input("Secret Key ID: ")
 
-                    sess_test['provider'] = 'AWS'
-                    sess_test['profile'] = str(profile_name)
-                    sess_test['access_key_id'] = str(access_key_id)
-                    sess_test['secret_key'] = str(secret_key)
-                    sess_test['region'] = ""
-                    yon = input("\nDo you also have a session token?[y/N] ")
-                    if yon == 'y' or yon == 'Y':
-                        sess_token = input("Session Token: ")
-                        sess_test['session_token'] = sess_token
+                        sess_test['provider'] = 'AWS'
+                        sess_test['profile'] = str(profile_name)
+                        sess_test['access_key_id'] = str(access_key_id)
+                        sess_test['secret_key'] = str(secret_key)
+                        sess_test['region'] = ""
+                        yon = input("\nDo you also have a session token?[y/N] ")
+                        if yon == 'y' or yon == 'Y':
+                            sess_token = input("Session Token: ")
+                            sess_test['session_token'] = sess_token
 
-                    comms['use']['credentials'][profile_name] = None
+                        comms['use']['credentials'][profile_name] = None
 
-                    if sess_test['profile'] == "" and sess_test['access_key_id'] == "" and sess_test['secret_key'] == "" and sess_test['region'] == "":
-                        pass
+                        if sess_test['profile'] == "" and sess_test['access_key_id'] == "" and sess_test['secret_key'] == "" and sess_test['region'] == "":
+                            pass
 
-                    else:
-                        cred_prof = sess_test['profile']
-                        all_sessions.append(copy.deepcopy(sess_test))
+                        else:
+                            cred_prof = sess_test['profile']
+                            all_sessions.append(copy.deepcopy(sess_test))
 
-                    print (colored("[*] Credentials set. Use ","green") + colored("'show credentials' ","blue") + colored("to check them.","green"))
-                    print(colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored("Use ","green") + colored("'show current-creds' ","blue") + colored("to check them.","green"))
+                        print (colored("[*] Credentials set. Use ","green") + colored("'show credentials' ","blue") + colored("to check them.","green"))
+                        print(colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored("Use ","green") + colored("'show current-creds' ","blue") + colored("to check them.","green"))
 
                 elif command.split(" ")[1] == 'azure-credentials':
                     set_azure_credentials(command, comms)

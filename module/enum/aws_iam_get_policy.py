@@ -104,7 +104,8 @@ def exploit(profile, workspace):
         print(output)
         output = ""
         pol['PolicyVersionList'] = pol_dict
-    except profile.exceptions.ServiceFailureException:
+    except botocore.exceptions.ClientError:
+        print("Trying GetPolicy")
         policy = profile.get_policy(
             PolicyArn = variables['POLICYARN']['value']
         )
@@ -112,10 +113,10 @@ def exploit(profile, workspace):
         pol['Policy'] = policy['Policy']
 
         print(colored("------------------------", "yellow", attrs=['bold']))
-        print("{}: {}".format(colored("PolicyName", "yellow", attrs=['bold']), policy['PolicyName']))
+        print("{}: {}".format(colored("PolicyName", "yellow", attrs=['bold']), pol['PolicyName']))
         print(colored("------------------------", "yellow", attrs=['bold']))
 
-        for key,value in policy.items():
+        for key,value in pol.items():
             print("\t{}: {}".format(colored(key, "red", attrs=['bold']), colored(value, "blue")))
 
     except:
