@@ -471,7 +471,6 @@ def main(workspace, particle, terminal, p, s):
                 "us-west-2": None
             }
         },
-        "help":None,
         "help": {
             "workspace":None,
             "user-agent":None,
@@ -881,10 +880,14 @@ def main(workspace, particle, terminal, p, s):
             elif command.split(" ")[0] == 'use':
                 if command.split(" ")[1] == 'credentials':
                     if len(command.split(" ")) == 3:
+                        cred_C = 0
                         for sess in all_sessions:
                             if sess['profile'] == command.split(" ")[2]:
                                 cred_prof = command.split(" ")[2]
+                                cred_C = 1
                                 print(colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored("Use ","green") + colored("'show current-creds' ","blue") + colored("to check them.","green"))
+                        if cred_C == 0:
+                            print(colored("[*] This credential does not exist", "red"))
 
                 elif command.split(" ")[1] == 'particle':
                     if not len(command.split(" ")) == 3:
@@ -1027,11 +1030,10 @@ def main(workspace, particle, terminal, p, s):
 
                         if count == 0:
                             m_name = (module_char.split("/")[1]).split("_")[0]
+                            print(m_name)
                             if m_name == 'aws':
                                 try:
-                                    for sess in all_sessions:
-                                        if sess['profile'] == cred_prof:
-                                            core.run_module.run_aws_module.run_aws_module(imported_module, sess, cred_prof, workspace, useragent)
+                                    core.run_module.run_aws_module.run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragent)
 
                                 except:
                                     e = sys.exc_info()
@@ -1040,6 +1042,7 @@ def main(workspace, particle, terminal, p, s):
 
                             elif m_name == 'azure':
                                 try:
+                                    #core.run_module.run_azure_module.run_azure_module(imported_module, all_sessions, cred_prof, workspace, useragent)
                                     core.run_module.run_azure_module.run_azure_module(imported_module, all_sessions, cred_prof, workspace, useragent)
 
                                 except:
