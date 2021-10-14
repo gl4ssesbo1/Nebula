@@ -249,8 +249,6 @@ def getuid(profile_dict, workspace):
                         del response['ResponseMetadata']
                     pol_output.append(response)
 
-                    all_info['Policies'] = response
-
                 if len(pol_output) > 0:
                     for json_data in pol_output:
                         output += colored("---------------------------------\n", "yellow", attrs=['bold'])
@@ -260,6 +258,8 @@ def getuid(profile_dict, workspace):
                         output += "\n"
                         print(output)
                         output = ""
+
+            all_info['Policies'] = pol_output
 
         except:
             e = sys.exc_info()
