@@ -90,11 +90,6 @@ def getuid(profile_dict, workspace):
             print("\t{}: {}".format(colored("Account", "red", attrs=['bold']),
                                     colored(response['Account'], "blue")))
 
-        except:
-            e = sys.exc_info()[1]
-            print(colored("[*] {}".format(e), "red"))
-
-        try:
             client = boto3.client(
                 "iam",
                 region_name=region,
@@ -176,6 +171,7 @@ def getuid(profile_dict, workspace):
 
             groups = []
             output = ""
+
             if len(groups_json_data) > 0:
                 output += colored("---------------------------------\n", "yellow", attrs=['bold'])
                 output += colored("Groups: \n", "yellow", attrs=['bold'])
@@ -191,53 +187,53 @@ def getuid(profile_dict, workspace):
 
                 print(output)
                 output = ""
+                del group
 
-            del group
             group_policies = {}
-
-            for group in groups:
-                group_response = client.list_group_policies(
-                    GroupName=group
-                )
-                group_policies[group] = {
-                    'InlinePolicies':[]
-                }
-
-                group_policies[group]['InlinePolicies'] = group_response['PolicyNames']
-
-                while group_response['IsTruncated']:
+            if len(groups) > 0:
+                for group in groups:
                     group_response = client.list_group_policies(
-                        GroupName=group,
-                        Marker=groups_for_users['Marker']
+                        GroupName=group
                     )
-                    (group_policies[group]['InlinePolicies']).extend(group_response['PolicyNames'])
+                    group_policies[group] = {
+                        'InlinePolicies':[]
+                    }
 
-                del group_response
+                    group_policies[group]['InlinePolicies'] = group_response['PolicyNames']
 
-                group_response = client.list_attached_group_policies(
-                    GroupName=group
-                )
-                group_policies[group] = {
-                    'AttachedPolicies': {}
-                }
-                group_policies[group]['AttachedPolicies'] = group_response['AttachedPolicies']
-                while group_response['IsTruncated']:
+                    while group_response['IsTruncated']:
+                        group_response = client.list_group_policies(
+                            GroupName=group,
+                            Marker=groups_for_users['Marker']
+                        )
+                        (group_policies[group]['InlinePolicies']).extend(group_response['PolicyNames'])
+
+                    del group_response
+
                     group_response = client.list_attached_group_policies(
-                        GroupName=group,
-                        Marker=groups_for_users['Marker']
+                        GroupName=group
                     )
-                    (group_policies[group]['AttachedPolicies']).extend(group_response['AttachedPolicies'])
+                    group_policies[group] = {
+                        'AttachedPolicies': {}
+                    }
+                    group_policies[group]['AttachedPolicies'] = group_response['AttachedPolicies']
+                    while group_response['IsTruncated']:
+                        group_response = client.list_attached_group_policies(
+                            GroupName=group,
+                            Marker=groups_for_users['Marker']
+                        )
+                        (group_policies[group]['AttachedPolicies']).extend(group_response['AttachedPolicies'])
 
-                for pol in group_policies[group]['AttachedPolicies']:
-                    policies.append(pol['PolicyArn'])
+                    for pol in group_policies[group]['AttachedPolicies']:
+                        policies.append(pol['PolicyArn'])
 
-                output += colored("---------------------------------\n", "yellow", attrs=['bold'])
-                output += colored("Group: {}\n".format(group), "yellow", attrs=['bold'])
-                output += colored("---------------------------------\n", "yellow", attrs=['bold'])
-                list_dictionary(group_policies[group], n_tab)
-                output += "\n"
-                print(output)
-                output = ""
+                    output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+                    output += colored("Group: {}\n".format(group), "yellow", attrs=['bold'])
+                    output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+                    list_dictionary(group_policies[group], n_tab)
+                    output += "\n"
+                    print(output)
+                    output = ""
 
             if len(policies) > 0:
                 pol_output = []
@@ -249,8 +245,6 @@ def getuid(profile_dict, workspace):
                         del response['ResponseMetadata']
                     pol_output.append(response)
 
-                    all_info['Policies'] = response
-
                 if len(pol_output) > 0:
                     for json_data in pol_output:
                         output += colored("---------------------------------\n", "yellow", attrs=['bold'])
@@ -260,6 +254,8 @@ def getuid(profile_dict, workspace):
                         output += "\n"
                         print(output)
                         output = ""
+
+            all_info['Policies'] = pol_output
 
         except:
             e = sys.exc_info()
