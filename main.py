@@ -1030,7 +1030,6 @@ def main(workspace, particle, terminal, p, s):
 
                         if count == 0:
                             m_name = (module_char.split("/")[1]).split("_")[0]
-                            print(m_name)
                             if m_name == 'aws':
                                 try:
                                     core.run_module.run_aws_module.run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragent)
@@ -1587,37 +1586,44 @@ def main(workspace, particle, terminal, p, s):
                                 sess['region'] = command.split(" ")[2]
 
                 elif command.split(" ")[1] == 'aws-credentials':
-                    profile_name = ""
                     if len(command.split(" ")) == 2:
                         print(colored("[*] The right command is: set aws-credentials <profile name>", "red"))
                     elif len(command.split(" ")) > 2:
                         print("Profile Name: {}".format(command.split(" ")[2]))
-                        profile_name = command.split(" ")[2]
+                        a = 0
+                        for credentials in all_sessions:
+                            if credentials['profile'] == command.split(" ")[2]:
+                                print(colored("[*] Those credentials exist. Try a new Profile Name", "red"))
+                                a = 1
 
-                        access_key_id = input("Access Key ID: ")
-                        secret_key = input("Secret Key ID: ")
+                        del credentials
 
-                        sess_test['provider'] = 'AWS'
-                        sess_test['profile'] = str(profile_name)
-                        sess_test['access_key_id'] = str(access_key_id)
-                        sess_test['secret_key'] = str(secret_key)
-                        sess_test['region'] = ""
-                        yon = input("\nDo you also have a session token?[y/N] ")
-                        if yon == 'y' or yon == 'Y':
-                            sess_token = input("Session Token: ")
-                            sess_test['session_token'] = sess_token
+                        if a == 0:
+                            access_key_id = input("Access Key ID: ")
+                            secret_key = input("Secret Key ID: ")
 
-                        comms['use']['credentials'][profile_name] = None
+                            sess_test['provider'] = 'AWS'
+                            sess_test['profile'] = str(command.split(" ")[2])
+                            sess_test['access_key_id'] = str(access_key_id)
+                            sess_test['secret_key'] = str(secret_key)
+                            sess_test['region'] = ""
+                            yon = input("\nDo you also have a session token?[y/N] ")
+                            if yon == 'y' or yon == 'Y':
+                                sess_token = input("Session Token: ")
+                                sess_test['session_token'] = sess_token
 
-                        if sess_test['profile'] == "" and sess_test['access_key_id'] == "" and sess_test['secret_key'] == "" and sess_test['region'] == "":
-                            pass
+                            comms['use']['credentials'][command.split(" ")[2]] = None
 
-                        else:
-                            cred_prof = sess_test['profile']
-                            all_sessions.append(copy.deepcopy(sess_test))
+                            if sess_test['profile'] == "" and sess_test['access_key_id'] == "" and sess_test['secret_key'] == "" and sess_test['region'] == "":
+                                pass
 
-                        print (colored("[*] Credentials set. Use ","green") + colored("'show credentials' ","blue") + colored("to check them.","green"))
-                        print(colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored("Use ","green") + colored("'show current-creds' ","blue") + colored("to check them.","green"))
+                            else:
+                                cred_prof = sess_test['profile']
+                                #all_sessions.append(copy.deepcopy(sess_test))
+                                all_sessions.append(sess_test)
+
+                            print (colored("[*] Credentials set. Use ","green") + colored("'show credentials' ","blue") + colored("to check them.","green"))
+                            print(colored("[*] Currect credential profile set to ", "green") + colored("'{}'.".format(cred_prof), "blue") + colored("Use ","green") + colored("'show current-creds' ","blue") + colored("to check them.","green"))
 
                 elif command.split(" ")[1] == 'azure-credentials':
                     set_azure_credentials(command, comms)
@@ -1701,7 +1707,25 @@ def main(workspace, particle, terminal, p, s):
 
             elif command.split(" ")[0] == 'show':
                 if command.split(" ")[1] == 'credentials':
-                    print(json.dumps(all_sessions, indent=4, default=str))
+                    for sess in all_sessions:
+                        print(colored("-------------------------------------",
+                                      "yellow"))
+                        print("{}: {}".format(
+                            colored("Profile", "yellow"),
+                            colored(sess['profile'], "yellow")
+                        ))
+                        print(colored("-------------------------------------",
+                                      "yellow"))
+                        for key, value in sess.items():
+                            print("\t{}: {}".format(
+                                colored(key, "red"),
+                                colored(value, "blue")
+                            ))
+                        print()
+
+                    del key
+                    del value
+
 
                 elif command.split(" ")[1] == 'sockets':
                     if not sockets:
@@ -1770,7 +1794,18 @@ def main(workspace, particle, terminal, p, s):
 
                     for sess in all_sessions:
                         if sess['profile'] == cred_prof:
-                            print(json.dumps(sess, indent=4, default=str))
+                            print(colored("--------------------------------------------------------------------------", "yellow"))
+                            print("{}: {}".format(
+                                colored("Profile", "red"),
+                                colored(cred_prof, "blue")
+                            ))
+                            print(colored("--------------------------------------------------------------------------", "yellow"))
+                            for key, value in sess.items():
+                                print("\t{}: {}".format(
+                                    colored(key, "red"),
+                                    colored(value, "blue")
+                                ))
+                            print(colored("--------------------------------------------------------------------------", "yellow"))
 
                 elif command.split(" ")[1] == 'modules':
                     for module in show:
@@ -1878,11 +1913,21 @@ def main(workspace, particle, terminal, p, s):
                                 sessions = json.load(outfile)
                                 for s in sessions:
                                     name = s['profile']
+                                    for credentials in all_sessions:
+                                        if credentials['profile'] == name:
+                                            cred_letters = string.ascii_lowercase
+                                            w = ''.join(random.choice(cred_letters) for i in range(8))
+                                            name += w
+                                            credentials['profile'] = name
+                                            print(colored("[*] Those credentials exist. Renaming to {}".format(name),
+                                                          "yellow"))
                                     comms['use']['credentials'][name] = None
                                     all_sessions.append(s)
 
                 else:
-                    print(colored("[*] Correct command is 'import credentials'.", "red"))
+                    print(
+                        colored("[*] Correct command is 'import credentials'.", "red")
+                    )
 
             elif command == 'getuid':
                 ready = False
@@ -1895,6 +1940,7 @@ def main(workspace, particle, terminal, p, s):
                 if workspace == "":
                     print(
                         colored("[*] Please choose a workspace first using 'use workspace <name>'.", "red"))
+                    ready = False
 
                 if ready:
                     for sess in all_sessions:
