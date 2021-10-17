@@ -64,8 +64,8 @@ def exploit(profile, workspace):
 				else:
 					output += ("\t{}: {}\n".format(colored(key, "red", attrs=['bold']), colored(value, "blue")))
 		output += "\n"
-		#print(output)
 		pipepager(output, cmd='less -R')
+		del output
 	
 	except profile.exceptions.TooManyRequestsException:
 		print(colored("[*] Too many requests sent. Only one does the job.", "red"))
@@ -73,7 +73,6 @@ def exploit(profile, workspace):
 	except profile.exceptions.InvalidParameterValueException:
 		print(colored("[*] No other caracters other than _+=,.@- is allowed on the GroupName", "red"))
 
-	else:
+	except:
 		e = sys.exc_info()
 		print(colored("[*] {}".format(e), "red"))
-	
