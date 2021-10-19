@@ -1189,7 +1189,6 @@ def main(workspace, particle, terminal, p, s):
                             with open("./workspaces/{}/{}/{}".format(workspace, particle, check_env_file), "w") as particle_file:
                                 json.dump(check_env_dict, particle_file, indent=4, default=str)
                             particle_file.close()
-                            print(check_env_dict)
 
                             print(
                                 "{}".format(
@@ -1387,7 +1386,7 @@ def main(workspace, particle, terminal, p, s):
                                     "yellow")
                             )
                             metadata = check_env_dict['META-DATA']
-                            if metadata['status-code'] == 200 or metadata['status-code'] == 401:
+                            if metadata['status_code'] == 200 or metadata['status_code'] == 401:
                                 global output
                                 n_tab = 0
 
@@ -1407,7 +1406,7 @@ def main(workspace, particle, terminal, p, s):
                                 print(output)
                                 output = ""
 
-                            elif metadata['status-code'] == 404:
+                            elif metadata['status_code'] == 404:
                                 print(
                                     colored("[*] No access to Meta-Data. Sorry :'( ", "red")
                                 )
@@ -1447,20 +1446,35 @@ def main(workspace, particle, terminal, p, s):
 
                         else:
                             if "_tcp_" in particles[particle]['module']:
-                                cmd = ""
-                                for c in (command.split(" ")[1:]):
-                                    cmd += c + " "
-                                cmd += " "
+                                if "_xor_" in particles[particle]['module']:
+                                    cmd = ""
+                                    for c in (command.split(" ")[1:]):
+                                        cmd += c + " "
+                                    cmd += " "
 
-                                cmd_command = str_xor(cmd, enc_key)
-                                cmd_command += 'done'
-                                shell.send(cmd_command.encode())
+                                    cmd_command = str_xor(cmd, enc_key)
+                                    cmd_command += 'done'
+                                    shell.send(cmd_command.encode())
 
-                                response = str_xor(recvall(shell).decode(), enc_key)
-                                if response == "":
-                                    print()
+                                    response = str_xor(recvall(shell).decode(), enc_key)
+                                    if response == "":
+                                        print()
 
-                                print(response)
+                                    print(response)
+                                else:
+                                    cmd = ""
+                                    for c in (command.split(" ")[1:]):
+                                        cmd += c + " "
+                                    cmd += " "
+
+                                    cmd += 'done'
+                                    shell.send(cmd.encode())
+
+                                    response = recvall(shell).decode()
+                                    if response == "":
+                                        print()
+
+                                    print(response)
 
                             if "_udp_" in particles[particle]['module']:
                                 cmd = ""

