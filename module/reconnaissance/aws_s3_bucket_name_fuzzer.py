@@ -66,7 +66,7 @@ def exploit(workspace):
 		region = variables["REGION"]["value"]
 		for buck in file.readlines():
 			try:
-				s3_url = "https://{0}.s3.{1}.amazonaws.com".format(buck.strip("\n"), region)
+				s3_url = "http://{0}.s3.{1}.amazonaws.com".format(buck.strip("\n"), region)
 				response = urllib.request.urlopen(s3_url).read()
 
 				filename = "./workspaces/{}/{}/{}.xml".format(workspace, filen, buck.strip("\n"))
@@ -95,7 +95,7 @@ def exploit(workspace):
 					print(colored("[*] Bucket '{}' exists, but you need credentials for that.".format(buck.strip("\n")), "blue"))
 
 				else:
-					if variables['VERBOSITY']['value'] == 'true':
+					if (variables['VERBOSITY']['value']).lower() == 'true':
 						print(colored("[*] Bucket '{}' does not exists exist.".format(buck.strip("\n")), "red", attrs=['bold']))
 
 	elif variables['BUCKET']['value'] != "" and variables['WORDLIST']['value'] == "":
@@ -103,7 +103,7 @@ def exploit(workspace):
 		region = variables["REGION"]["value"]
 		for buck in buckets:
 			try:
-				s3_url = "https://{0}.s3.{1}.amazonaws.com".format(buck, region)
+				s3_url = "http://{0}.s3.{1}.amazonaws.com".format(buck, region)
 				response = urllib.request.urlopen(s3_url).read()
 
 				filename = "./workspaces/{}/{}/{}.xml".format(workspace, filen, buck)
@@ -127,28 +127,31 @@ def exploit(workspace):
 				res = {tag_keys[i]: tag_date[i] for i, _ in enumerate(tag_date)}
 				objects[buck] = res
 
+
 			except urllib.error.HTTPError as e:
 				if "Forbidden" in str(e):
 					print (colored("[*] Bucket '{}' exists, but you need credentials for that.".format(buck),"blue"))
 
 				else:
-					if variables['VERBOSITY']['value'] == 'true':
+					if (variables['VERBOSITY']['value']).lower() == 'true':
 						print(colored("[*] Bucket '{}' does not exists exist.".format(buck), "red", attrs=['bold']))
+
+		if len(objects) > 0:
+			try:
+				yn = input("Do you want to list the files on each public bucket? [y/N] ")
+				if yn == 'y' or yn == 'Y':
+					output = ""
+					for key, value in objects.items():
+						output += (
+							"{} {}\n".format(colored("\tFiles in Bucket", "yellow", attrs=['bold']),
+											 colored(key, "yellow")))
+						output += (colored("\t------------------------------------------\n", "yellow", attrs=['bold']))
+						for k, v in value.items():
+							output += ("\t\t{}:\t{}\n".format(colored(k, "red"), colored(v, "yellow")))
+						output += (colored("\t------------------------------------------\n", "yellow", attrs=['bold']))
+					pipepager(output, 'less -R')
+			except:
+				e = sys.exc_info()[1]
+				print(colored("[*] {}".format(e), "red"))
 	else:
 		print(colored("[*] Add either a bucket or a wordlist of buckets.","red"))
-
-	try:
-		yn = input("Do you want to list the files on each public bucket? [y/N] ")
-		if yn == 'y' or yn == 'Y':
-			output = ""
-			for key, value in objects.items():
-				output += (
-					"{} {}\n".format(colored("\tFiles in Bucket", "yellow", attrs=['bold']), colored(key, "yellow")))
-				output += (colored("\t------------------------------------------\n", "yellow", attrs=['bold']))
-				for k, v in value.items():
-					output += ("\t\t{}:\t{}\n".format(colored(k, "red"), colored(v, "yellow")))
-				output += (colored("\t------------------------------------------\n", "yellow", attrs=['bold']))
-			pipepager(output, 'less -R')
-	except:
-		e = sys.exc_info()[1]
-		print(colored("[*] {}".format(e), "red"))

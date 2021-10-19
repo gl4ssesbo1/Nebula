@@ -57,7 +57,7 @@ def socket_bind():
     sockets[id]['socket'] = s
     sockets[id]['addr'] = (str(s).split(",")[4]).split("'")[1] + ":" + (str(s).split(",")[5]).split(")")[0]
     sockets[id]['type'] = ((str(s).split(",")[2])).split(".")[1]
-    sockets[id]['module'] = 'aws_python_tcp_listener'
+    sockets[id]['module'] = 'aws_python_tcp_xor_encrypted'
     sockets[id]['ENKEY'] = ENKEY
 
 
@@ -123,7 +123,7 @@ def socket_accept():
 
         particles[name] = {
             "socket": conn,
-            "module":"aws_python_tcp_listener",
+            "module":"aws_python_tcp_xor_encrypted",
             "IP": addr[0],
             "Port": addr[1],
             "LAN_IP":addr[0],
