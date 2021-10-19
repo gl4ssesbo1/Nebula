@@ -47,8 +47,15 @@ def exploit(profile, workspace):
         )['PolicyStatus']
         json_data['BucketName'] = bucket
     except:
-        json_data['BucketName'] = bucket
-        json_data['IsPublic'] = False
+        e = sys.exc_info()[1]
+        print(type(e))
+        if "NoSuchBucketPolicy" in str(e):
+            json_data['BucketName'] = bucket
+            json_data['IsPublic'] = False
+        else:
+            print(colored(
+                "[*] {}".format(e), "red"
+            ))
 
     with open(filename, 'w') as outfile:
         json.dump(json_data, outfile, indent=4, default=str)

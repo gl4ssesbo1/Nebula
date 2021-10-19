@@ -92,21 +92,23 @@ def init_info(system):
 
         check_env['DOCKSOCK'] = docksock
 
-        fdisk = os.popen('fdisk -l').read()
-        if not fdisk == "":
-            privileged = True
-            disks = []
-            alldisks = fdisk.split(" ")
+        try:
+            fdisk = os.popen('fdisk -l').read()
+            if not fdisk == "":
+                privileged = True
+                disks = []
+                alldisks = fdisk.split(" ")
 
-            for d in alldisks:
-                if "/dev/" in d:
-                    index = alldisks.index(d)
-                    d = d + " " + alldisks[index+1] + " " + alldisks[index+2]
-                    if not d in disks:
-                        disks.append(d.replace(":", ""))
+                for d in alldisks:
+                    if "/dev/" in d:
+                        index = alldisks.index(d)
+                        d = d + " " + alldisks[index+1] + " " + alldisks[index+2]
+                        if not d in disks:
+                            disks.append(d.replace(":", ""))
 
-            check_env['DISKS'] = disks
-
+                check_env['DISKS'] = disks
+        except:
+            pass
         else:
             privileged = False
 
@@ -182,7 +184,7 @@ def meta_data():
         r = requests.get(metalink, timeout=5)
 
         if r.status_code == 200:
-            metadata["status-code"] = r.status_code
+            metadata["status_code"] = r.status_code
             for key,value in metatest.items():
                 meta_resp = requests.get("{}{}".format(metalink,value))
                 metadata[key] = meta_resp.text
@@ -207,16 +209,15 @@ def meta_data():
 
 
         elif r.status_code == 401:
-
             try:
                 headers = {"X-aws-ec2-metadata-token-ttl-seconds": '21600'}
                 test_token = requests.put("http://169.254.169.254/latest/api/token", headers=headers, timeout=5)
                 TOKEN = test_token.text
                 # TOKEN= `curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"` \
                 # && curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/meta-data/
-                metadata["status-code"] = 200
+                metadata["status_code"] = 200
                 headers = {"X-aws-ec2-metadata-token": TOKEN}
-                metadata["status-code"] = test_token.status_code
+                metadata["status_code"] = test_token.status_code
                 for key, value in metatest.items():
                     meta_resp = requests.get("{}{}".format(metalink, value), headers=headers, timeout=5)
                     # meta_resp = requests.get("http://169.254.169.254/latest/meta-data/mac", headers=headers, timeout=5)
@@ -254,12 +255,12 @@ def meta_data():
                     metadata['interfaces'] = None
 
             except requests.exceptions.ConnectTimeout:
-                metadata['status-code'] = 404
+                metadata['status_code'] = 404
 
         else:
-            metadata["status-code"] = r.status_code
+            metadata["status_code"] = r.status_code
     except requests.exceptions.ConnectTimeout:
-        metadata['status-code'] = 404
+        metadata['status_code'] = 404
 
     return metadata
 
