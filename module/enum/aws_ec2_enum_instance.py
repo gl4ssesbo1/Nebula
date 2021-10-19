@@ -170,10 +170,20 @@ def extra_exploit(profile, filename):
 
     if not len(instance_attribs) == 0:
         for key, value in instance_attribs.items():
-            output += colored("---------------------------------\n", "yellow", attrs=['bold'])
-            output += colored("{}\n".format(key), "yellow", attrs=['bold'])
-            output += colored("---------------------------------\n", "yellow", attrs=['bold'])
-            list_dictionary(value, n_tab)
-            output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+            output += colored("==========================================================================\n",
+                              "yellow", attrs=['bold'])
+            output += colored("                                  " + key + " \n", "yellow", attrs=['bold'])
+            output += colored("==========================================================================\n",
+                              "yellow", attrs=['bold'])
+            if isinstance(value, list):
+                output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+                for data in value:
+                    list_dictionary(data, n_tab)
+                    output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+            else:
+                output += colored("---------------------------------\n", "yellow", attrs=['bold'])
+                output += colored("{}\n".format(key), "yellow", attrs=['bold'])
+                list_dictionary(value, n_tab)
+                output += colored("---------------------------------\n", "yellow", attrs=['bold'])
 
     return output

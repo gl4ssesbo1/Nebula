@@ -13,11 +13,11 @@ author = {
 needs_creds = True
 
 variables = {
-	"SERVICE": {
-		"value": "iam",
-		"required": "true",
+    "SERVICE": {
+        "value": "iam",
+        "required": "true",
         "description": "The service that will be used to run the module. It cannot be changed."
-	}
+    }
 }
 
 description = "Enumerates the permissions of all users, groups, policies, roles or just any of them if required. The IAM whose credentials are provided needs to have IAMReadOnlyAccess, IAMFullAccess, or have permissions: "
@@ -44,23 +44,26 @@ colors = [
 
 output = ""
 
+
 def list_dictionary(d, n_tab):
-	global output
-	if isinstance(d, list):
-		n_tab += 1
-		for i in d:
-			if not isinstance(i, list) and not isinstance(i, dict):
-				output += ("{}{}\n".format("\t" * n_tab, colored(i, colors[n_tab])))
-			else:
-				list_dictionary(i, n_tab)
-	elif isinstance(d, dict):
-		n_tab+=1
-		for key, value in d.items():
-			if not isinstance(value, dict) and not isinstance(value, list):
-				output += ("{}{}: {}\n".format("\t"*n_tab, colored(key, colors[n_tab], attrs=['bold']) , colored(value, colors[n_tab+1])))
-			else:
-				output += ("{}{}:\n".format("\t"*n_tab, colored(key, colors[n_tab], attrs=['bold'])))
-				list_dictionary(value, n_tab)
+    global output
+    if isinstance(d, list):
+        n_tab += 1
+        for i in d:
+            if not isinstance(i, list) and not isinstance(i, dict):
+                output += ("{}{}\n".format("\t" * n_tab, colored(i, colors[n_tab])))
+            else:
+                list_dictionary(i, n_tab)
+    elif isinstance(d, dict):
+        n_tab += 1
+        for key, value in d.items():
+            if not isinstance(value, dict) and not isinstance(value, list):
+                output += ("{}{}: {}\n".format("\t" * n_tab, colored(key, colors[n_tab], attrs=['bold']),
+                                               colored(value, colors[n_tab + 1])))
+            else:
+                output += ("{}{}:\n".format("\t" * n_tab, colored(key, colors[n_tab], attrs=['bold'])))
+                list_dictionary(value, n_tab)
+
 
 def exploit(profile, workspace):
     global output
@@ -76,19 +79,18 @@ def exploit(profile, workspace):
         response = profile.get_account_authorization_details()
         iam_details = response
 
-
         while response['IsTruncated']:
-           response = profile.get_account_authorization_details(
+            response = profile.get_account_authorization_details(
                 Marker=response['Marker']
             )
-           if response.get('UserDetailList'):
-               (iam_details['UserDetailList']).extend(response['UserDetailList'])
-           if response.get('GroupDetailList'):
-               (iam_details['GroupDetailList']).extend(response['GroupDetailList'])
-           if response.get('RoleDetailList'):
-               (iam_details['RoleDetailList']).extend(response['RoleDetailList'])
-           if response.get('Policies'):
-               (iam_details['Policies']).extend(response['Policies'])
+            if response.get('UserDetailList'):
+                (iam_details['UserDetailList']).extend(response['UserDetailList'])
+            if response.get('GroupDetailList'):
+                (iam_details['GroupDetailList']).extend(response['GroupDetailList'])
+            if response.get('RoleDetailList'):
+                (iam_details['RoleDetailList']).extend(response['RoleDetailList'])
+            if response.get('Policies'):
+                (iam_details['Policies']).extend(response['Policies'])
 
         iam['UserDetailList'] = iam_details['UserDetailList']
         iam['GroupDetailList'] = iam_details['GroupDetailList']
@@ -101,11 +103,12 @@ def exploit(profile, workspace):
                 if k['VersionId'] == default_version:
                     pol_dict.append(k)
         iam['Policies'] = pol_dict
-        with open(filename,'w') as outputfile:
+        with open(filename, 'w') as outputfile:
             json.dump(iam, outputfile, indent=4, default=str)
 
         outputfile.close()
-        print(colored("[*] Output written to file", "green"), colored("'{}'".format(filename), "blue"), colored(".", "green"))
+        print(colored("[*] Output written to file", "green"), colored("'{}'".format(filename), "blue"),
+              colored(".", "green"))
 
         for key, value in iam.items():
             if key == "Policies":
@@ -113,7 +116,7 @@ def exploit(profile, workspace):
             else:
                 output += colored("==========================================================================\n",
                                   "yellow", attrs=['bold'])
-                output += colored("                                  "+ key +" \n", "yellow", attrs=['bold'])
+                output += colored("                                  " + key + " \n", "yellow", attrs=['bold'])
                 output += colored("==========================================================================\n",
                                   "yellow", attrs=['bold'])
                 if isinstance(value, list):
@@ -128,4 +131,5 @@ def exploit(profile, workspace):
                     output += colored("---------------------------------\n", "yellow", attrs=['bold'])
         pipepager(output, 'less -R')
     except profile.exceptions.ServiceFailureException:
-        print(colored("[*] Are you sure you have the rights to execute 'GetAccountAuthorizationDetails' API Call?","red"))
+        print(colored("[*] Are you sure you have the rights to execute 'GetAccountAuthorizationDetails' API Call?",
+                      "red"))

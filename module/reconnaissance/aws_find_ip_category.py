@@ -80,6 +80,7 @@ def exploit(workspace):
 	ipv4 = []
 	ipv6 = []
 	domain = []
+	domain_ip = {}
 
 	try:
 		ipfile = open(ip_file, 'r')
@@ -97,18 +98,29 @@ def exploit(workspace):
 			for d in domain:
 				try:
 					resolved_domain = socket.gethostbyname(d)
-					if re.match(IPv4_REGEX, resolved_domain.strip()):
-						ipv4.append(resolved_domain.strip())
-
-					elif re.match(IPv6_REGEX, resolved_domain.strip()):
-						ipv6.append(resolved_domain.strip())
-
+					domain_ip[d] = resolved_domain
 				except socket.gaierror:
 					print(colored("[*] Domain '{}' is not resolvable.".format(d), "red"))
 
-		if ipv4:
-			for ip in ipv6:
+		if domain_ip:
+			for dom,ip in domain_ip.items():
 				an_address = ipaddress.ip_address(ip)
+				for ip4 in AWS_IP_RANGE['prefixes']:
+					a_network = ipaddress.ip_network(ip4['ip_prefix'])
+					if an_address in a_network:
+						service = ip4['service']
+						if json_data.get(service) is None:
+							json_data[service] = []
+
+						data = {}
+						data['domain'] = dom
+						data['IP'] = ip
+						data['ip_prefix'] = ip4['ip_prefix']
+						data['region'] = ip4['region']
+						data['network_border_group'] = ip4['network_border_group']
+						(json_data[service]).append(data)
+						continue
+
 				for ip6 in AWS_IP_RANGE['ipv6_prefixes']:
 					a_network = ipaddress.ip_network(ip6['ipv6_prefix'])
 
@@ -119,14 +131,14 @@ def exploit(workspace):
 
 						data = {}
 						data['IP'] = ip
-						data['ipv4_prefix'] = ip6['ipv6_prefix']
+						data['domain'] = dom
+						data['ip_prefix'] = ip6['ipv6_prefix']
 						data['region'] = ip6['region']
 						data['network_border_group'] = ip6['network_border_group']
 						(json_data[service]).append(data)
 						continue
-		ip = ""
-		key = ""
-		service = ""
+			del ip
+
 		if ipv4:
 			for ip in ipv4:
 				an_address = ipaddress.ip_address(ip)
@@ -140,11 +152,34 @@ def exploit(workspace):
 
 						data = {}
 						data['IP'] = ip
-						data['ipv4_prefix'] = ip4['ip_prefix']
+						data['ip_prefix'] = ip4['ip_prefix']
 						data['region'] = ip4['region']
 						data['network_border_group'] = ip4['network_border_group']
 						(json_data[service]).append(data)
 						continue
+			del ip
+		ip = ""
+		key = ""
+		service = ""
+		if ipv6:
+			for ip in ipv6:
+				an_address = ipaddress.ip_address(ip)
+				for ip6 in AWS_IP_RANGE['ipv6_prefixes']:
+					a_network = ipaddress.ip_network(ip6['ipv6_prefix'])
+
+					if an_address in a_network:
+						service = ip6['service']
+						if json_data.get(service) is None:
+							json_data[service] = []
+
+						data = {}
+						data['IP'] = ip
+						data['ip_prefix'] = ip6['ipv6_prefix']
+						data['region'] = ip6['region']
+						data['network_border_group'] = ip6['network_border_group']
+						(json_data[service]).append(data)
+						continue
+			del ip
 
 
 		key = service = ip = ""
@@ -155,11 +190,19 @@ def exploit(workspace):
 			print(colored("------------------------------", "yellow"))
 
 			for ip in ips:
-				print("\t{} | {} | {} |".format(
-					colored(ip['IP'], "red"),
-					colored(ip['region'], "blue"),
-					colored(ip['ipv4_prefix'], "green"),
-				))
+				if 'domain' in ip:
+					print("\t{} | {} | {} | {}".format(
+						colored(ip['IP'], "red"),
+						colored(ip['region'], "blue"),
+						colored(ip['ip_prefix'], "green"),
+						colored(ip['domain'], "yellow"),
+					))
+				else:
+					print("\t{} | {} | {} |".format(
+						colored(ip['IP'], "red"),
+						colored(ip['region'], "blue"),
+						colored(ip['ip_prefix'], "green"),
+					))
 
 
 		with open(filename, 'w') as outfile:

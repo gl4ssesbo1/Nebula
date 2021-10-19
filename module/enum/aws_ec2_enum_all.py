@@ -110,7 +110,7 @@ def exploit(profile, workspace):
         print(colored("[*] you have no rights to Describe Security Groups. ", "red"))
 
     try:
-        '''inst = profile.describe_snapshots(
+        inst = profile.describe_snapshots(
             Filters=[
                 {
                     'Name': 'owner-id',
@@ -119,8 +119,7 @@ def exploit(profile, workspace):
                     ]
                 },
             ],
-        )'''
-        inst = profile.describe_snapshots()
+        )
         if len(inst["Snapshots"]) > 0:
             instance_attribs["Snapshots"] = inst["Snapshots"]
             print(colored("[*] Snapshots Done. ", "green"))

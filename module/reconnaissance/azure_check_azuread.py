@@ -23,11 +23,6 @@ variables = {
         "value": "",
         "required": "true",
         "description":"The domain of the company to test."
-    },
-    "USER-EMAIL": {
-        "value": "",
-        "required": "true",
-        "description":"Add a valid email from the company."
     }
 }
 description = "Check if federation is configured for a domain."
@@ -69,36 +64,22 @@ def exploit(workspace):
     n_tab = 0
     global output
 
+    domain = variables['DOMAIN']['value']
+
     now = datetime.now()
     dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-    file = "{}_azure_check_azuread".format(dt_string)
+    file = "{}_azure_check_azuread_{}".format(dt_string, domain)
     filename = "./workspaces/{}/{}".format(workspace, file)
 
-    user_email = variables['USER-EMAIL']['value']
-    domain = variables['DOMAIN']['value']
-    url = ""
-
-    if domain == "" and user_email == "":
+    if domain == "":
         print(
-            colored("[*] Enter either DOMAIN or USER-EMAIL","red")
+            colored("[*] Enter a DOMAIN","red")
         )
-    elif domain == "" and not user_email == "":
-        url = 'https://login.microsoftonline.com/getuserrealm.srf?login={}'.format(user_email)
 
-    elif not domain == "" and user_email == "":
+    else:
         url = 'https://login.microsoftonline.com/getuserrealm.srf?login={}'.format(domain)
-
-    else:
-        url = 'https://login.microsoftonline.com/getuserrealm.srf?login={}'.format(user_email)
-
-    if url == "":
-        pass
-    else:
         try:
             json_data = json.loads(requests.get(url).text)
-
-            if domain == "":
-                domain = user_email.split("@")[1]
 
             with open(filename, 'w') as outfile:
                 json.dump(json_data, outfile, indent=4, default=str)
@@ -119,7 +100,11 @@ def exploit(workspace):
                 list_dictionary(json_data, n_tab)
                 output += colored("---------------------------------\n", "yellow", attrs=['bold'])
             print(output)
-            output = ""
+            del output
+
+        except KeyError:
+            print(colored("[*] AzureAD not configured.", "yellow"))
+
         except:
-            e = sys.exc_info()[1]
+            e = sys.exc_info()
             print(colored("[*] {}".format(e), "red"))
