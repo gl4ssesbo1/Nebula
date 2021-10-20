@@ -206,7 +206,7 @@ def meta_data():
             metadata['iam'] = iam_keys
 
             ifs = {}
-            metalink = metalink + "meta-data" + adv_metatest['macs']
+            metalink = metalink + "meta-data"
             macs = requests.get("{}{}".format(metalink, adv_metatest['macs'])).json()
             for mac in macs:
                 for key, value in interfaces.items():
@@ -248,7 +248,7 @@ def meta_data():
                 else:
                     metadata['iam'] = None
                 ifs = {}
-                metalink = metalink + "meta-data" + adv_metatest['macs']
+                metalink = metalink + "meta-data"
                 themacs = requests.get("{}{}".format(metalink, adv_metatest['macs']), headers=headers, timeout=5)
 
                 if themacs.status_code == 200:
