@@ -239,7 +239,7 @@ def meta_data():
                     iam_arn = iam_info['InstanceProfileArn']
                     ec2_role = requests.get("{}{}".format(metalink, iam_metatest['ec2-role']), headers=headers,
                                             timeout=5).text
-                    iam_k = requests.get("{}{}".format(metalink, iam_metatest['ec2-role'], ec2_role.text),
+                    iam_k = requests.get("{}{}{}".format(metalink, iam_metatest['ec2-role'], ec2_role),
                                          headers=headers, timeout=5).text
                     iam_keys = json.loads(iam_k)
                     iam_keys['InstanceProfileArn'] = iam_arn
