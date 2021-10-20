@@ -49,9 +49,12 @@ def list_dictionary(d, n_tab):
 def getuid(profile_dict, workspace):
     global output
     n_tab = 0
-    region = profile_dict['region']
+    region = profile_dict['region']s
     access_key_id = profile_dict['access_key_id']
     secret_key = profile_dict['secret_key']
+
+    if "session_token" in profile_dict:
+        session_token = profile_dict['session_token']
 
     if region == "":
         print("{}{}{}".format(
@@ -67,12 +70,22 @@ def getuid(profile_dict, workspace):
         all_info = {}
 
         try:
-            client = boto3.client(
-                "sts",
-                region_name=region,
-                aws_access_key_id=access_key_id,
-                aws_secret_access_key=secret_key
-            )
+            if session_token == "":
+                client = boto3.client(
+                    "sts",
+                    region_name=region,
+                    aws_access_key_id=access_key_id,
+                    aws_secret_access_key=secret_key
+                )
+            else:
+                client = boto3.client(
+                    "sts",
+                    region_name=region,
+                    aws_access_key_id=access_key_id,
+                    aws_secret_access_key=secret_key,
+                    aws_session_token=session_token
+                )
+
             response = client.get_caller_identity()
             del response['ResponseMetadata']
             all_info['UserID'] = response
@@ -90,12 +103,21 @@ def getuid(profile_dict, workspace):
             print("\t{}: {}".format(colored("Account", "red", attrs=['bold']),
                                     colored(response['Account'], "blue")))
 
-            client = boto3.client(
-                "iam",
-                region_name=region,
-                aws_access_key_id=access_key_id,
-                aws_secret_access_key=secret_key
-            )
+            if session_token == "":
+                client = boto3.client(
+                    "iam",
+                    region_name=region,
+                    aws_access_key_id=access_key_id,
+                    aws_secret_access_key=secret_key
+                )
+            else:
+                client = boto3.client(
+                    "iam",
+                    region_name=region,
+                    aws_access_key_id=access_key_id,
+                    aws_secret_access_key=secret_key,
+                    aws_session_token = session_token
+                )
 
             if not username == "":
                 response = client.get_user(
