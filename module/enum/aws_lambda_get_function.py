@@ -6,8 +6,10 @@ from pydoc import pipepager
 import requests, zipfile, io
 import urllib
 import os
+import sys
 from colorama import init
 init()
+
 
 author = {
     "name":"gl4ssesbo1",
@@ -88,6 +90,26 @@ def exploit(profile, workspace):
 
 		pipepager(output, cmd='less -R')
 
+		downloadpath = "./lambda_code/{}".format(variables['DOWNLOADPATH']['value'])
+		url = response['Code']['Location']
+		download_code = input(colored(
+			"------------------------------------------------\nDo you want to download the code at '{}'? [Y/n] ".format(
+				downloadpath), "yellow"))
+
+		if download_code == "Y" or download_code == "y":
+			try:
+				if not os.path.isdir(downloadpath):
+					os.mkdir(downloadpath)
+
+				r = requests.get(url)
+				z = zipfile.ZipFile(io.BytesIO(r.content))
+				z.extractall(downloadpath)
+				print(colored("[*] Code dumped on file '{}'.".format(downloadpath), "green"))
+
+			except:
+				e = sys.exc_info()
+				print(colored("[*] {}".format(e), "red"))
+
 	except profile.exceptions.TooManyRequestsException:
 		print(colored("[*] Too many requests sent. Only one does the job.", "red"))
 
@@ -95,23 +117,5 @@ def exploit(profile, workspace):
 		print(colored("[*] No other caracters other than _+=,.@- is allowed on the GroupName", "red"))
 
 	except:
-		e = sys.exc_info()
+		e = sys.exc_info()[1]
 		print(colored("[*] {}".format(e), "red"))
-
-	downloadpath = "./lambda_code/{}".format(variables['DOWNLOADPATH']['value'])
-	url = response['Code']['Location']
-	download_code = input(colored("------------------------------------------------\nDo you want to download the code at '{}'? [Y/n] ".format(downloadpath),"yellow"))
-
-	if download_code == "Y" or download_code == "y":
-		try:
-			if not os.path.isdir(downloadpath):
-				os.mkdir(downloadpath)
-
-			r = requests.get(url)
-			z = zipfile.ZipFile(io.BytesIO(r.content))
-			z.extractall(downloadpath)
-			print(colored("[*] Code dumped on file '{}'.".format(downloadpath), "green"))
-
-		except:
-			e = sys.exc_info()
-			print(colored("[*] {}".format(e), "red"))
