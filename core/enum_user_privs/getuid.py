@@ -49,9 +49,10 @@ def list_dictionary(d, n_tab):
 def getuid(profile_dict, workspace):
     global output
     n_tab = 0
-    region = profile_dict['region']s
+    region = profile_dict['region']
     access_key_id = profile_dict['access_key_id']
     secret_key = profile_dict['secret_key']
+    session_token = ""
 
     if "session_token" in profile_dict:
         session_token = profile_dict['session_token']
@@ -70,7 +71,7 @@ def getuid(profile_dict, workspace):
         all_info = {}
 
         try:
-            if session_token == "":
+            if "session_token" in profile_dict:
                 client = boto3.client(
                     "sts",
                     region_name=region,
@@ -103,7 +104,7 @@ def getuid(profile_dict, workspace):
             print("\t{}: {}".format(colored("Account", "red", attrs=['bold']),
                                     colored(response['Account'], "blue")))
 
-            if session_token == "":
+            if "session_token" in profile_dict:
                 client = boto3.client(
                     "iam",
                     region_name=region,

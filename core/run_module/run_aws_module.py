@@ -128,7 +128,8 @@ def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragen
                     os.environ['AWS_ACCESS_KEY'] = env_aws['AWS_ACCESS_KEY']
                     os.environ['AWS_SECRET_KEY'] = env_aws['AWS_SECRET_KEY']
                     os.environ['AWS_REGION'] = env_aws['AWS_REGION']
-                    os.environ['AWS_SESSION_TOKEN'] = env_aws['AWS_SESSION_TOKEN']
+                    if 'AWS_SESSION_TOKEN' in env_aws:
+                        os.environ['AWS_SESSION_TOKEN'] = env_aws['AWS_SESSION_TOKEN']
 
                 del env_aws
 
