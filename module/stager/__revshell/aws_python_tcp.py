@@ -163,7 +163,7 @@ def meta_data():
     }
 
     adv_metatest = {
-        "macs": "network/interfaces/macs",
+        "macs": "/network/interfaces/macs",
         "interfaces": []
     }
 
