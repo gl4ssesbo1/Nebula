@@ -205,6 +205,7 @@ def meta_data():
 
             metadata['iam'] = iam_keys
 
+            '''
             ifs = {}
             metalink = metalink + "meta-data"
             macs = requests.get("{}{}".format(metalink, adv_metatest['macs'])).json()
@@ -214,7 +215,7 @@ def meta_data():
                     ifs[mac] = meta_resp.text
 
             metadata['interfaces'] = ifs
-
+            '''
 
         elif r.status_code == 401:
             try:
@@ -251,6 +252,7 @@ def meta_data():
                 metalink = metalink + "meta-data"
                 themacs = requests.get("{}{}".format(metalink, adv_metatest['macs']), headers=headers, timeout=5)
 
+                '''
                 if themacs.status_code == 200:
                     macs = json.loads(themacs.text)
                     for mac in macs:
@@ -258,10 +260,10 @@ def meta_data():
                             meta_resp = requests.get("{}{}{}".format(metalink, mac, value), headers=headers, timeout=5)
                             ifs[mac] = meta_resp.text
                     metadata['interfaces'] = ifs
-
+                
                 else:
                     metadata['interfaces'] = None
-
+                '''
             except requests.exceptions.ConnectTimeout:
                 metadata['status_code'] = 404
 
