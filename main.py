@@ -1350,6 +1350,8 @@ def main(workspace, particle, terminal, p, s):
                                     awssess['access_key_id'] = creds['AWS_KEY']
                                     awssess['secret_key'] = creds['SECRET_KEY']
                                     awssess['region'] = creds['region']
+                                    if 'session_token' in creds:
+                                        awssess['session_token'] = creds['session_token']
                                     all_sessions.append(awssess)
 
                                     print(

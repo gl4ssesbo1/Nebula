@@ -110,10 +110,10 @@ def init_info(system):
                                 disks.append(d.replace(":", ""))
 
                     check_env['DISKS'] = disks
+            else:
+                privileged = False
         except:
             pass
-        else:
-            privileged = False
 
         check_env['PRIVILEGED'] = privileged
 
@@ -137,6 +137,9 @@ def init_info(system):
                 awssess['AWS_KEY'] = credentials.access_key
                 awssess['SECRET_KEY'] = credentials.secret_key
                 awssess['region'] = sess.region_name
+                if not credentials.token == None:
+                    awssess['session_token'] = credentials.token
+                del credentials
                 all_sessions.append(awssess)
 
         check_env['AWS_CREDS'] = all_sessions
