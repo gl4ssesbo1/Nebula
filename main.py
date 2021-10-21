@@ -1607,12 +1607,13 @@ def main(workspace, particle, terminal, p, s):
                     elif len(command.split(" ")) > 2:
                         print("Profile Name: {}".format(command.split(" ")[2]))
                         a = 0
-                        for credentials in all_sessions:
-                            if credentials['profile'] == command.split(" ")[2]:
-                                print(colored("[*] Those credentials exist. Try a new Profile Name", "red"))
-                                a = 1
+                        if len(all_sessions) > 0:
+                            for credentials in all_sessions:
+                                if credentials['profile'] == command.split(" ")[2]:
+                                    print(colored("[*] Those credentials exist. Try a new Profile Name", "red"))
+                                    a = 1
 
-                        del credentials
+                            del credentials
 
                         if a == 0:
                             access_key_id = input("Access Key ID: ")
