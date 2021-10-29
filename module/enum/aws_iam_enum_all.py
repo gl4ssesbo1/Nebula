@@ -98,10 +98,17 @@ def exploit(profile, workspace):
 
         pol_dict = []
         for x in iam_details['Policies']:
-            default_version = x['DefaultVersionId']
-            for k in x['PolicyVersionList']:
-                if k['VersionId'] == default_version:
-                    pol_dict.append(k)
+            correct_version = {}
+            for key, value in x.items():
+                if key == "PolicyVersionList":
+                    for version in value:
+                        if 'IsDefaultVersion':
+                            correct_version['PolicyVersion'] = version
+                            pol_dict.append(correct_version)
+                            break
+                else:
+                    correct_version[key] = value
+
         iam['Policies'] = pol_dict
         with open(filename, 'w') as outputfile:
             json.dump(iam, outputfile, indent=4, default=str)

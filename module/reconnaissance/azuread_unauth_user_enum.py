@@ -55,11 +55,13 @@ def exploit(workspace):
 	now = datetime.now()
 	dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
 	filen = "{}_azuread_unauth_enum_users_{}".format(dt_string, domain)
-	filename = "./workspaces/{}/{}".format(workspace, filen)
+
 	while os.path.exists(filen):
 		now = datetime.now()
 		dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
 		filen = "{}_azuread_unauth_enum_users_{}".format(dt_string, domain)
+	filename = "./workspaces/{}/{}".format(workspace, filen)
+	all_output = []
 
 	outputfile = open(filename, 'w')
 
@@ -70,52 +72,69 @@ def exploit(workspace):
 		print(colored("[*] Add at least a username or a user file. Not both though.", "red"))
 
 	elif not user == "":
-		user = "{}@{}".format(user, domain)
+		email = "{}@{}".format(user, domain)
 		url = "https://login.microsoftonline.com/common/GetCredentialType"
-		response = requests.post(url, data={"Username": user})
-		print(response.status_code)
-		print(response.text)
+		data = '{"Username": "' + email + '"}'
+		response = requests.post(url, data=data)
 		json_output = json.loads(response.text)
 
 		if json_output["IfExistsResult"] == 0:
-			print("[*] {}{}{}".format(
-				colored("User '", "green"),
-				colored("{}@{}".format(user, domain), "blue"),
-				colored("' exists", "green")
-			))
-			outputfile.write("{}@{}".format(user, domain))
+			if json_output['Credentials']['HasPassword']:
+				print("{}{}{}".format(
+					colored("[*] User '", "green"),
+					colored("{}".format(email), "blue"),
+					colored("' exists and has a password.", "green")
+				))
+			else:
+				print("{}{}{}".format(
+					colored("[*] User '", "green"),
+					colored("{}".format(email), "blue"),
+					colored("' exists and does not have a password.", "green")
+				))
+			outputfile.write("{}\n".format(email))
+			all_output.append(json_output)
 		else:
 			if verbosity.lower() == 'true':
-				print("[*] {}{}{}".format(
-					colored("User '", "red"),
-					colored("{}@{}".format(user, domain), "blue"),
-					colored("' doen not exist", "red")
+				print("{}{}{}".format(
+					colored("[*] User '", "red"),
+					colored("{}".format(email), "blue"),
+					colored("' does not exist", "red")
 				))
 
 	elif not userfile == "":
 		theuserfile = open(userfile, 'r')
 		for us in theuserfile.readlines():
 			url = "https://login.microsoftonline.com/common/GetCredentialType"
-			data = {
-				"Username": "{}@{}".format(us.strip(), domain)
-			}
-
+			email = "{}@{}".format(us.strip().replace("\n", ""), domain)
+			data = '{"Username": "' + email + '"}'
 			response = requests.post(url, data=data)
 			json_output = json.loads(response.content)
 
 			if json_output["IfExistsResult"] == 0:
-				print("[*] {}{}{}".format(
-					colored("User '", "green"),
-					colored("{}@{}".format(us.strip(), domain), "blue"),
-					colored("' exists", "green")
-				))
-				outputfile.write("{}@{}".format(us.strip(), domain))
+				if json_output['Credentials']['HasPassword']:
+					print("{}{}{}".format(
+						colored("[*] User '", "green"),
+						colored("{}".format(email), "blue"),
+						colored("' exists and has a password.", "green")
+					))
+				else:
+					print("{}{}{}".format(
+						colored("[*] User '", "green"),
+						colored("{}".format(email), "blue"),
+						colored("' exists and does not have a password.", "green")
+					))
+				outputfile.write("{}\n".format(email))
+				all_output.append(json_output)
 			else:
 				if verbosity.lower() == 'true':
-					print("[*] {}{}{}".format(
-						colored("User '", "red"),
-						colored("{}@{}".format(us.strip(), domain), "blue"),
+					print("{}{}{}".format(
+						colored("[*] User '", "red"),
+						colored("{}".format(email), "blue"),
 						colored("' does not exist", "red")
 					))
-
-	"https://login.microsoft.com/common/oauth2/token"
+	print()
+	print("{}{}{}".format(
+		colored("[*] User list was saved on file '", 'yellow'),
+		colored(filename, 'blue'),
+		colored("'.", 'yellow')
+	))
