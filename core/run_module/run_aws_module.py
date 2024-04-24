@@ -2,27 +2,89 @@ from termcolor import colored
 import os
 import boto3, botocore
 
-def enter_credentials(service, access_key_id, secret_key, region):
-    return boto3.client(service, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key)
 
-def enter_credentials_with_session_token(service, access_key_id, secret_key, region, session_token):
-    return boto3.client(service, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key, aws_session_token=session_token)
+def enter_credentials(service, access_key_id, secret_key, region, ua, proxy_definitions):
+    args = {
+        "service_name": service,
+        "region_name": region,
+        "aws_access_key_id": access_key_id,
+        "aws_secret_access_key": secret_key
+    }
 
-def enter_credentials_with_session_token_and_user_agent(service, access_key_id, secret_key, region, session_token, ua):
-    session_config = botocore.config.Config(user_agent=ua)
-    return boto3.client(service, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key, aws_session_token=session_token, config=session_config)
+    session_config_args = {}
 
-def enter_credentials_with_user_agent(service, access_key_id, secret_key, region, ua):
-    session_config = botocore.config.Config(user_agent=ua)
-    return boto3.client(service, config=session_config, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key)
+    if not proxy_definitions is None:
+        session_config_args["proxies"] = proxy_definitions
 
-def enter_session(session_name, region, service):
+    if not ua == "":
+        session_config_args["user_agent"] = ua
+
+    if not session_config_args == {}:
+        session_config = botocore.config.Config(**session_config_args)
+        args["config"] = session_config
+
+    return boto3.client(**args)
+
+
+def enter_credentials_with_session_token(service, access_key_id, secret_key, region, session_token, ua,
+                                         proxy_definitions):
+    args = {
+        "service_name": service,
+        "region_name": region,
+        "aws_access_key_id": access_key_id,
+        "aws_secret_access_key": secret_key,
+        "aws_session_token": session_token
+    }
+
+    session_config_args = {}
+
+    if not proxy_definitions == None:
+        session_config_args["proxies"] = proxy_definitions
+
+    if not ua == "":
+        session_config_args["user_agent"] = ua
+
+    if not session_config_args == {}:
+        session_config = botocore.config.Config(**session_config_args)
+        args["config"] = session_config
+
+    return boto3.client(**args)
+
+
+def enter_session(session_name, region, service, ua, proxy_definitions):
     boto_session = boto3.session.Session(profile_name=session_name, region_name=region)
-    return boto_session.client(service)
+    args = {
+        "service_name": service,
+    }
 
-def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragent):
+    session_config_args = {}
+
+    if not proxy_definitions == None:
+        session_config_args["proxies"] = proxy_definitions
+
+    if not ua == "":
+        session_config_args["user_agent"] = ua
+
+    if not session_config_args == {}:
+        session_config = botocore.config.Config(**session_config_args)
+        args["config"] = session_config
+
+    return boto_session.client(**args)
+
+def run_aws_module(imported_module, all_sessions, cred_prof, useragent, web_proxies):
+    return imported_module.exploit(all_sessions, cred_prof, useragent, web_proxies)
+
+def run_aws_module_old(imported_module, all_sessions, cred_prof, useragent, web_proxies):
     service = imported_module.variables['SERVICE']['value']
     sess = {}
+
+    proxy_definitions = {}
+
+    if not web_proxies == []:
+        for proxy in web_proxies:
+            proxy_definitions[proxy.split(":")[0]] = proxy
+    else:
+        proxy_definitions = None
 
     if imported_module.needs_creds:
         c = 0
@@ -60,7 +122,6 @@ def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragen
 
             if c == 0:
                 env_aws = {}
-
                 if os.environ.get('AWS_ACCESS_KEY'):
                     env_aws['AWS_ACCESS_KEY'] = os.environ.get('AWS_ACCESS_KEY')
                     del os.environ['AWS_ACCESS_KEY']
@@ -83,41 +144,30 @@ def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragen
                 os.environ['AWS_REGION'] = sess['region']
 
                 if not 'session_token' in sess:
-                    if not useragent == "":
-                        profile_v = enter_credentials_with_user_agent(service,
-                                                                      sess['access_key_id'],
-                                                                      sess['secret_key'],
-                                                                      sess['region'],
-                                                                      useragent
-                                                                      )
-                        imported_module.exploit(profile_v, workspace)
+                    profile_v = enter_credentials(service,
+                                                  sess['access_key_id'],
+                                                  sess['secret_key'],
+                                                  sess['region'],
+                                                  useragent,
+                                                  proxy_definitions
+                                                  )
+                    return imported_module.exploit(profile_v)
 
-                    else:
-                        profile_v = enter_credentials(service,
-                                                      sess['access_key_id'],
-                                                      sess['secret_key'],
-                                                      sess['region']
-                                                      )
-                        imported_module.exploit(profile_v, workspace)
+
                 elif 'session_token' in sess and sess['session_token'] != "":
-                    if not useragent == "":
-                        profile_v = enter_credentials_with_session_token(service,
-                                                                sess['access_key_id'],
-                                                                sess['secret_key'],
-                                                                sess['region'],
-                                                                sess['session_token']
-                                                                )
-                        imported_module.exploit(profile_v, workspace)
-                    else:
-                        profile_v = enter_credentials_with_session_token_and_user_agent(service,
-                                                                      sess['access_key_id'],
-                                                                      sess['secret_key'],
-                                                                      sess['region'],
-                                                                      sess['session_token'],
-                                                                      useragent)
-                        imported_module.exploit(profile_v, workspace)
+                    profile_v = enter_credentials_with_session_token(service,
+                                                                     sess['access_key_id'],
+                                                                     sess['secret_key'],
+                                                                     sess['region'],
+                                                                     sess['session_token'],
+                                                                     useragent,
+                                                                     proxy_definitions
+                                                                     )
+                    return imported_module.exploit(profile_v)
+
                 else:
-                    print(colored("[*] Check if the session key is empty.","yellow"))
+                    print(colored("[*] Check if the session key is empty.", "yellow"))
+
                 del os.environ['AWS_ACCESS_KEY']
                 del os.environ['AWS_SECRET_KEY']
                 del os.environ['AWS_REGION']
@@ -134,4 +184,4 @@ def run_aws_module(imported_module, all_sessions, cred_prof, workspace, useragen
                 del env_aws
 
     else:
-        imported_module.exploit(workspace)
+        return imported_module.exploit()

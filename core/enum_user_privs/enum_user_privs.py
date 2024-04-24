@@ -306,35 +306,42 @@ def enum_privs(profile_dict, workspace):
     if 'session_token' in profile_dict:
         session_token = profile_dict['session_token']
 
-    if session_token == "":
-        stscli = boto3.client("sts", region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key)
-    else:
-        stscli = boto3.client("sts", region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key, aws_session_token=session_token)
+    try:
+        if session_token == "":
+            stscli = boto3.client("sts", region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key)
+        else:
+            stscli = boto3.client("sts", region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key, aws_session_token=session_token)
+
+    except:
+        e = str(sys.exc_info())
+        return {
+            "error": e
+        }
 
     response = stscli.get_caller_identity()
     del response['ResponseMetadata']
     user = (response['Arn']).split("/")[-1]
 
-    print(
-        ("{}: {}".format(
-            colored("User", "red", attrs=['bold']),
-            colored(user, "blue")
-            )
-        )
-    )
-    for key, value in response.items():
-        print("\t{}: {}".format(
-            colored(key, "red", attrs=['bold']),
-            colored(value, "blue")
-        ))
-
     for service in SERVICES:
+        read_perm = {
+            "List": {},
+            "Describe": {}
+        }
+        read_perm2 = {
+            "List": [],
+            "Describe": []
+        }
+        profile = None
+        list_perm = []
+        desc_perm = []
+
         print(colored("--------------------------", 'yellow', attrs=['bold']))
         print("{}: {}".format(
             colored("Service", "red", attrs=['bold']),
             colored(service, "blue", attrs=['bold'])
             ))
         print(colored("--------------------------", 'yellow', attrs=['bold']))
+
         if session_token == "":
             profile = boto3.client(service, region_name=region, aws_access_key_id=access_key_id, aws_secret_access_key=secret_key)
         else:
@@ -352,12 +359,14 @@ def enum_privs(profile_dict, workspace):
             print(colored("[*] Trying the 'List' functions:", "yellow", attrs=['bold']))
             for lmeth in list_perm:
                 try:
+                    print(lmeth)
                     response = getattr(profile, lmeth)()
                     del response['ResponseMetadata']
                     read_perm['List'][lmeth] = response
                     (read_perm2['List']).append(lmeth)
 
                     print(colored("[*] '{}' worked! ".format(lmeth),"green"))
+
                 except KeyboardInterrupt:
                     print(colored("[*] Stopping. It might take a while. Please wait.", "green"))
                     now = datetime.now()
@@ -382,12 +391,15 @@ def enum_privs(profile_dict, workspace):
                     return
 
                 except:
+                    e = str(sys.exc_info())
+                    print(e)
                     pass
 
         if len(desc_perm) > 0:
             print(colored("[*] Trying the 'Describe' functions:", "yellow", attrs=['bold']))
             for dmeth in desc_perm:
                 try:
+                    print(dmeth)
                     response = getattr(profile, dmeth)()
                     del response['ResponseMetadata']
                     read_perm['Describe'][dmeth] = response
@@ -417,29 +429,11 @@ def enum_privs(profile_dict, workspace):
                     print(colored("[*] The list of the allowed functions is saved to '{}'".format(filename2), "green"))
                     return
                 except:
+                    e = str(sys.exc_info())
+                    print(e)
                     pass
 
         full_perm[service] = read_perm
         list_of_perms[service] = read_perm2
-        read_perm2 = {}
-        read_perm = {}
-        list_perm = []
-        desc_perm = []
-        print()
 
-    now = datetime.now()
-    dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-    file = "{}_enum_user_privs_{}".format(dt_string, user)
-    filename = "./workspaces/{}/{}".format(workspace, file)
-    file = "{}_allowed_functions_{}".format(dt_string, user)
-    filename2 = "./workspaces/{}/{}".format(workspace, file)
 
-    with open(filename, 'w') as perm_file:
-        json.dump(full_perm, perm_file, indent=4, default=str)
-        perm_file.close()
-    print(colored("[*] Output of the allowed functions is saved to '{}'".format(filename), "green"))
-
-    with open(filename2, 'w') as perm_file:
-        json.dump(list_of_perms, perm_file, indent=4, default=str)
-        perm_file.close()
-    print(colored("[*] The list of the allowed functions is saved to '{}'".format(filename2), "green"))

@@ -1,0 +1,76 @@
+#!/usr/bin/bash
+
+function InstallDockerDockerCompose() {
+  if [[ $(id -u) -ne 0 ]] ; then
+    echo -e "\e[31m[*] Please execute the script as root with sudo to install docker and docker compose.\e[0m";
+    echo "";
+    exit 1;
+  fi
+
+  IFS=$(printf '\n\t')
+
+  # Docker
+
+  #sudo apt update
+  #curl -fsSL https://get.docker.com -o get-docker.sh
+  #sh get-docker.sh
+  #sudo usermod --append --groups docker "$USER"
+  #sudo systemctl enable docker
+  printf '\nDocker installed successfully\n\n'
+
+  printf 'Waiting for Docker to start...\n\n'
+  #sudo systemctl enable docker
+  printf 'Docker Started\n\n'
+
+  # Docker Compose
+  printf '\nInstalling Docker Compose...\n\n'
+  URL="https://github.com/docker/compose/releases/download/$(curl https://api.github.com/repos/docker/compose/releases/latest | jq .tag_name | tr -d '"')/docker-compose-linux-x86_64"
+  curl $URL -OL
+  sudo mv ./docker-compose-linux-x86_64 /usr/local/bin/docker-compose
+  #sudo wget --output-document=/usr/local/bin/docker-compose "https://github.com/docker/compose/releases/download/$(wget --quiet --output-document=- https://api.github.com/repos/docker/compose/releases/latest | grep --perl-regexp --only-matching '"tag_name": "\K.*?(?=")')/run.sh"
+  sudo chmod +x /usr/local/bin/docker-compose
+  #sudo wget --output-document=/etc/bash_completion.d/docker-compose "https://raw.githubusercontent.com/docker/compose/$(docker-compose version --short)/contrib/completion/bash/docker-compose"
+  printf '\nDocker Compose installed successfully\n\n'
+}
+
+function RunNebula() {
+  read -r -p "Profile Name: " profile_name
+  read -s -r -p "Cosmonaut Password: " password
+
+  echo "{\"databaseHost\": \"172.20.0.3\", \"databaseName\": \"$profile_name\", \"databasePort\": 27017, \"password\": \"$password\"}" > ./teamserver.conf
+  docker-compose up -d
+}
+
+function NebulaHelp() {
+    echo "Nebula Teamserver"
+    echo "Will run the teamserver of Nebula"
+    echo "  -id  --install-docker   Install Docker and Docker-Compose"
+    echo "  -r   --run              Run Nebula"
+    echo "  -h   --help             Print this message"
+}
+
+# shellcheck disable=SC2120
+function main() {
+  if [[ $# -gt 0 ]]; then
+    case "$1" in
+      -i|--install-docker)
+          InstallDockerDockerCompose
+          ;;
+      -r|--run)
+          RunNebula
+          ;;
+      -h|--help)
+          NebulaHelp
+          ;;
+      *)
+          echo "Unknown argument: $1"
+          exit 1
+          ;;
+    esac
+  else
+    NebulaHelp
+  fi
+}
+
+# shellcheck disable=SC2068
+main $@

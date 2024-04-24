@@ -1,0 +1,48 @@
+[*] Reconnaissance
+    reconnaissance/azure_unauth_user_enum (adfs too)
+    reconnaissance/aws_find_ip_category
+    reconnaissance/azure_fuzz_subdomains
+    reconnaissance/misc_gitdumper
+
+[*] Enum:
+    enum/get_iam_groups
+    https://github.com/prowler-cloud/prowler
+    RoadTools
+    All Zeus Features: https://github.com/DenizParlak/Zeus
+
+[*] Console
+    https://github.com/NetSPI/aws_consoler
+
+[*] Exploit
+    Device Code Phishing
+
+[*] Post Exploitation
+    https://github.com/Static-Flow/CloudCopy
+    https://github.com/andresriancho/enumerate-iam (like my enumerate iam)
+
+[*] Bypass Defences
+    Disable Logging
+        Disable CloudTrail
+        Disable monitoring of events from global services
+        Disable Cloud Trail on specific regions
+        Delete logs from Bucket
+    User Agent Change
+
+[*] Persistence
+    Golden SAML Attack
+    Update AWS key
+    Create 2nd key
+
+[*] Commands
+    list_aws_iam_groups
+    list_aws_iam_roles
+    list_aws_iam_policies
+    list_domains
+    list_s3_buckets
+    get_aws_iam_group
+    get_aws_iam_role
+    get_aws_iam_policy
+    get_domain
+    get_s3_bucket
+    list_azure_users
+    get_azure_user

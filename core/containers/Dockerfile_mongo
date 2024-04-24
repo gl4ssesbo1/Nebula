@@ -1,0 +1,104 @@
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work5"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017
+FROM mongo
+WORKDIR / nebula
+RUN mongod --replSet r0 --port 27017
+RUN docker exec -it mongo mongo --eval 'db = (newMongo("localhost:27017")).getDB("work6"); config={"_id":"r0","members":[{"_id":0,"host":"mongo:27017"}]}; rs.initiate(config);' localhost:27017

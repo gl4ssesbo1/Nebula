@@ -1,0 +1,49 @@
+version: '3.9'
+
+networks:
+  my_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+services:
+  mongo_db:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    networks:
+      my_network:
+        ipv4_address: 172.20.0.3
+    logging:
+      driver: "none"
+
+  python_app:
+    image: python:3.9
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./:/code
+    working_dir: /code
+    command: >
+      sh -c "
+        apt-get update && apt-get upgrade -y && 
+        apt install python3-dev python3-pip -y && 
+        apt install docker.io -y && 
+        python3.9 -m pip install --upgrade pip && 
+        python3.9 -m pip install -r requirements.txt && 
+        apt update && apt install awscli -y && 
+        apt-get update && 
+        apt-get install curl -y && 
+        service docker start && 
+        curl 'https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb' -OL && 
+        dpkg -i session-manager-plugin.deb && 
+        cd /code && 
+        ls &&
+        python3.9 teamserver.py -c teamserver.conf"
+    environment:  # Define the environment variable for the python_app service
+      MONGO_DB_HOST: mongo_db  # Use the service name as the IP address
+    # entrypoint: python3 teamserver.py -c teamserver.conf
+    networks:
+      my_network:
+        ipv4_address: 172.20.0.2

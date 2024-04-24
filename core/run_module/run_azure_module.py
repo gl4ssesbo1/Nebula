@@ -1,6 +1,7 @@
 #import azure.identity
-
+import adal
 '''
++ get_authority_url
 + DeviceCode
    - ClientID
 + InteractiveBrowser
@@ -11,7 +12,8 @@
 '''
 
 def run_azure_module(imported_module, all_sessions, cred_prof, workspace, useragent):
+    global tokendata
     if imported_module.needs_creds:
         print("You ran an azure module")
     else:
-        imported_module.exploit(workspace)
+        return imported_module.exploit(workspace)

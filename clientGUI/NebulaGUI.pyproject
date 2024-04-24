@@ -1,0 +1,3 @@
+{
+    "files": ["widget.py","logo.png","selectGraphFilterDialog.ui","FilterGraphListWidget.py","addCredentialWindow.ui","mainwindow.ui","AddCredentials.py","form.ui","MainNebulaWindow.py"]
+}

@@ -1,0 +1,21 @@
+from databases.db import db
+
+class Particles(db.Document):
+    particle_id = db.StringField(required=True, unique=True)
+    c2_host = db.StringField(required=True)
+    c2_port = db.IntField(required=True, unique=True)
+    particle_module = db.StringField(required=True)
+    particle_listener = db.StringField(required=True)
+    particle_api_user = db.StringField(required=True, unique=True)
+    particle_api_pass_hash = db.StringField(required=True, unique=True)
+    particle_system = db.StringField()
+    particle_env = db.StringField()
+    particle_uname = db.DictField()
+    particle_env_variables = db.DictField()
+    particle_init = db.StringField()
+    particle_docksock = db.BoolField()
+    particle_disks = db.ListField()
+    particle_privileged_docker = db.BoolField()
+    particle_hostname = db.StringField()
+    particle_aws_data = db.ListField()
+    particle_meta_data = db.DictField()

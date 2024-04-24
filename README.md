@@ -1,71 +1,36 @@
 # Nebula
-<img src="./img/logo.png" alt="logo" width="200"/>
+<img src="./core/img/logo.png" alt="logo" width="200" align="center"/>
 
 Nebula is a Cloud and (hopefully) DevOps Penetration Testing framework. 
 It is build with modules for each provider and each functionality. As of April 2021, it only covers AWS, but is currently an ongoing project and hopefully will continue to grow to test GCP, Azure, Kubernetes, Docker, or automation engines like Ansible, Terraform, Chef, etc.
+I started writing it while I was reading "Hands-On AWS Penetration Testing with Kali Linux" (https://www.amazon.com/Hands-Penetration-Testing-Kali-Linux/dp/1789136725) and was based on Pacu (https://github.com/RhinoSecurityLabs/pacu)
+
+**Presentations:**
+- BlackHat Europe 2021: https://www.blackhat.com/eu-21/arsenal/schedule/index.html#nebula-a-case-study-in-penetrating-something-as-soft-as-a-cloud-25174
 
 **Currently covers:**
-- S3 Bucket name bruteforce
-- IAM, EC2, S3, STS and Lambda Enumeration
-- IAM, EC2, STS, and S3 exploitation
-- SSM Enumeration + Exploitation
-- Custom HTTP User-Agent
-- Enumerate Read Privileges (working on write privs)
-- Reverse Shell
-- No creds Reconnaisance
+- AWS, Azure (Graph and Management API) and DigitalOcean enumeration, exploitation and post-exploitation
 
-**There are currently 67 modules covering:**
+**There are currently 72 modules covering:**
 - Reconnaissance
 - Enumeration
 - Exploit
 - Cleanup
-- Reverse Shell
+
+**Version 3.0 Includes:**
+- Team cooperation with the client-teamserver architecture 
+- All the requests requires authentication (except for the authentication request ofc)
+- All the information is stored into a MongoDB Server and accessible using commands. The information will ofc have to been enumerated before, but this allows you to not enumerate a certain object
 
 ## Installation
-
-### Docker
-#### From Dockerhub
-Clone the Nebula Repo from Github and pull Nebula Docker image:
-
-``` 
-git clone https://github.com/gl4ssesbo1/Nebula
-docker pull gl4ssesbo1/nebula:latest
-```
-and then run main.py through:
+### Server
+Nebula is coded in python3.11. It uses boto3 library to access AWS. 
+To install, create a venv and install python 3.11+ and install libraries required from *requirements.txt*
 
 ```
-cd Nebula
-docker run -v $(pwd):/app -ti gl4ssesbo1/nebula:latest main.py
-```
-Remember to not forget -v option, because it allows files to be saved on the system even after removing the docker image.
-
-#### Using DockerFile
-Clone the Nebula Repo from Github and build Docker image locally:
-
-``` 
-git clone https://github.com/gl4ssesbo1/Nebula
-docker build -t nebula .
-```
-then run main.py through:
-
-```
-docker run -v Nebula:/app -ti nebula main.py
-```
-
-Remember to not forget -v option, because it allows files to be saved on the system even after removing the docker image.
-
-#### Adding port mapping
-If you want to run a shell, also add the -p option:
-```
-cd Nebula
-docker run -p <host port>:<container port> -v $(pwd):/app -ti gl4ssesbo1/nebula:latest main.py
-```
-
-### Installed on System
-Nebula is coded in python3.8 and tested on python3.8 and 3.9. It uses boto3 library to access AWS. To install, just install python 3.8+ and install libraries required from *requirements.txt*
-
-```
-python3.8 -m pip install -r requirements.txt 
+python3 -m venv ./venv
+source venv/bin/activate
+python3 -m pip install -r requirements.txt 
 ```
 
 Then install session-manager-plugin. This is needed for SSM modules:
@@ -76,23 +41,93 @@ dpkg -i session-manager-plugin.deb
 On windows devices, since less is not installed, I got one from **https://github.com/jftuga/less-Windows**
 The prebuilt binary is saved on directory less_binary. Just add that directory to the PATH environment variable and it will be ok.
 
-Then just run *main.py*
+Then just run **teamserver** 
 ```
-python3.8 ./main.py
+python3 teamserver.py -dn <workspace name> -p <password>
 ```
+
+### Client
+Same with client **client**. You will need to create another venv outside of the scope of the teamserver one. Create the venv and install the libraries:
+```
+cd client
+python3 -m venv ./venv
+source venv/bin/activate
+python3 -m pip install -r requirements.txt 
+nebula -w <database name> --password <password> -ah <server host>
+```
+
 ## Usage
 ```
-python3.9.exe .\main.py -b
-                -------------------------------------------------------------
-                50 aws          0 gcp           0 azure         0 office365
-                0 docker        0 kubernetes
-                -------------------------------------------------------------
-                50 modules      2 cleanup               0 detection
-                41 enum         6 exploit               0 persistence
-                0 listeners     0 lateral movement      0 detection bypass
-                0 privesc       1 reconnaissance        0 stager
-                -------------------------------------------------------------
-()()(AWS) >>>
+
+                                              ...........
+                                      ...''''''''''''''...
+                                   ..'''''...........''''''............
+                                 ..''''..             ...'''''''''''''''...
+                               ..'''..                   ..............'''''..
+                              .''''.          .;loddool:'.              ..''''..
+                             ..'''.          .;clokXWWMWNKkl;.             .''''.
+                             .'''.      .',,'..    ';dNMMMMMWKko;.           .'''..
+                            .''''.   .cx0NWWNX0koc;,'cKMMMMMMMMMWXOo:.        .''''....
+                            .'''.   .',',:oONMMMMMWNNNWMMMMMMWKk0WMMWXx'       .''''''''...
+                           ..'''.          .,dXMMMMMMMMMMMMMNOl',oONWWd.        .......'''''..
+                        ...'''''..   :o'      cXMMMMMMMMMMMMMWNXKKXNWWKxc,.             ..''''..
+                      ..''''....     oNKl'. ..oXMMMMMMMMMMMMMMMMMMMMMMMMMNKOdc,..         ..''''.
+                    ..''''..         ,OWWX0O0XWMMMMMMMMMMMMMMMMMMWWWWMMMMMMMMMWXOxooxk:.    ..'''.
+ ..'''''''''''''''''''''.             .l0NMMMMMMMMMMMMMMMMMMMMN0dc;;;coONMMMMMMMMMMMMMK:     ..'''.
+ .......................                .,dXMMMMMMMMMMMMMMMMMMWX0ko:.  .;OWMMMMMMMMMMMWx.     .'''.
+                                          .oWMMMMMMMMMMMMMMWNXXXWMMWKd'  .:lccclodOXWMWd.      .'''.
+     ,lc'    ..................   ',.    .,OWMMMMMMMMMMMMXx:'...:0WMMMKl.      .. .'oKO,       .'''.
+    ,0MWx.  .''''''''''''''''''.  ;OKOOOO0NWMMMMMMMMMMMMNl.     .cdoox0XOl;'....... ...        .'''.
+    .;ol'    ...................   ;kXWMMMMMMMMMMMMMMMMMWx.          .:0WNKkdo:.  ...         .'''.
+   ....................              .:ldxk0XWMMMMMMMMMMMW0o'        .';;,.         ....     ..'''.
+ ;k00000000000000000000x'                  ..;lkXWMMMMMMMMMWXkc.                            ..'''.
+.lXWWWWWWWWWWWWWWWWWWMMWKl.                     ;OWMMMMMMMMMMMWKx:.                       ..''''.
+  .,,,,,,,,,,,,,,,,,:kNMMW0o,.                  'kWMMMMMMMMMMMMMMWKd,.                  ..''''..
+                     .:ONMMMNKkdlc:::::::::ccldkKWMMMMMMMMMMMMMMMMMMNOl'    ...........'''''..
+                       .,oOXWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWXkc....''''''''''...
+                          .':ldkO0000000000000000000000000000000000000000Ox:.  ........
+                                 ...........................................
+
+
+                           _        _______  ______            _        _______
+                          ( (    /|(  ____ \(  ___ \ |\     /|( \      (  ___  )
+                          |  \  ( || (    \/| (   ) )| )   ( || (      | (   ) |
+                          |   \ | || (__    | (__/ / | |   | || |      | (___) |
+                          | (\ \) ||  __)   |  __ (  | |   | || |      |  ___  |
+                          | | \   || (      | (  \ \ | |   | || |      | (   ) |
+                          | )  \  || (____/\| )___) )| (___) || (____/\| )   ( |
+                          |/    )_)(_______/|/ \___/ (_______)(_______/|/     \|
+                                                Because Clouds are so AWSome
+
+                        -------------------------------------------------------------
+                                                        Created by: gl4ssesbo1
+                        -------------------------------------------------------------
+                        87 aws          0 gcp           1 azure         0 office365
+                        0 docker        0 kubernetes    3 misc          2 azuread
+                        -------------------------------------------------------------
+                        93 modules      3 cleanup               0 detection
+                        62 enum         11 exploit              1 persistence
+                        1 listeners     0 lateral movement      2 detection bypass
+                        0 privesc       9 reconnaissance        1 stager
+                        3 misc
+
+                        Remember:
+                        -------------------------------------------------------------
+                        1) Only use this  tool  if  you  have  permissions  from  the
+                        infrastructure's owner. Don't be a dick. Don't  choose  jail.
+                        And if you have some scruples, don't hack others just because
+                        you can (or cannot, in which case that's why you  chose  this
+                        tool to do it).
+
+                        2) There is a template file on module directory that you  can
+                        use if you want to  develop  new  modules.  If  you  want  to
+                        contribute on this tool, be my guest.
+
+                        3) Thank you for using this tool and Hack the Planet Legally!
+                        -------------------------------------------------------------
+[*] Importing sessions found on ~/.aws
+[*] Imported sessions found on ~/.aws. Enter 'show credentials' to get the credentials.
+(work5)()(Nebula) >>>
 ```
 ### Help
 Running *help* command, will give you a list of the commands that can be used:

@@ -1,5 +1,0 @@
-{
-	"commands":[
-		# Remove this commenrs and add commands here
-		]
-}

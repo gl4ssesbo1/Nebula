@@ -19,62 +19,93 @@ SERVICES = [
     "ssm"
 ]
 
-DANGEROUS_POLICIES = [
-    "iam:CreatePolicyVersion",
-    "iam:SetDefaultPolicyVersion",
-    "iam:PassRole",
-    "ec2:RunInstances",
-    "iam:CreateAccessKey",
-    "iam:CreateLoginProfile",
-    "iam:UpdateLoginProfile",
-    "iam:AttachUserPolicy",
-    "iam:AttachGroupPolicy",
-    "iam:AttachRolePolicy",
-    "iam:PutUserPolicy",
-    "iam:PutGroupPolicy",
-    "iam:PutRolePolicy",
-    "iam:AddUserToGroup",
-    "iam:UpdateAssumeRolePolicy",
-    "sts:AssumeRole",
-    "iam:PassRole",
-    "lambda:CreateFunction",
-    "lambda:InvokeFunction",
-    "iam:PassRole",
-    "lambda:CreateFunction",
-    "lambda:AddPermission",
-    "iam:PassRole",
-    "lambda:CreateFunction",
-    "lambda:CreateEventSourceMapping",
-    "dynamodb:PutItem",
-    "dynamodb:CreateTable",
-    "lambda:UpdateFunctionCode",
-    "iam:PassRole",
-    "glue:CreateDevEndpoint",
-    "glue:UpdateDevEndpoint",
-    "iam:PassRole",
-    "cloudformation:CreateStack",
-    "iam:PassRole",
-    "datapipeline:CreatePipeline",
-    "datapipeline:PutPipelineDefinition",
-    "codestar:CreateProjectFromTemplate",
-    "codestar:CreateProject",
-    "iam:PassRole",
-    "codestar:CreateProject",
-    "codestar:AssociateTeamMember",
-    "lambda:UpdateFunctionConfiguration",
-    "sagemaker:CreateNotebookInstance",
-    "sagemaker:CreatePresignedNotebookInstanceUrl",
-    "iam:PassRole",
-    "sagemaker:CreatePresignedNotebookInstanceUrl",
-    "ssm:SendCommand",
-    "ssm:GetCommandInvocation",
-    "ssm:StartSession",
-    "ssm:UpdateDocument",
-    "ssm:CreateDocument",
-    "ssm:UpdateDocumentDefaultVersion",
-    "ssm:UpdateDocumentMetadata",
-    "ssm:ModifyDocumentPermission"
-]
+DANGEROUS_POLICIES = {
+    "cloudformation":[
+        "cloudformation:CreateStack"
+    ],
+
+    "codestar":[
+        "codestar:AssociateTeamMember",
+        "codestar:CreateProject",
+        "codestar:CreateProject",
+        "codestar:CreateProjectFromTemplate"
+    ],
+
+    "datapipeline": [
+        "datapipeline:CreatePipeline",
+        "datapipeline:PutPipelineDefinition",
+    ],
+
+    "dynamodb": [
+        "dynamodb:CreateTable",
+        "dynamodb:PutItem",
+    ],
+
+    "ec2": [
+        "ec2:RunInstances",
+    ],
+
+    "glue":[
+        "glue:CreateDevEndpoint",
+        "glue:UpdateDevEndpoint",
+    ],
+
+    "iam": [
+        "iam:AddUserToGroup",
+        "iam:AttachGroupPolicy",
+        "iam:AttachRolePolicy",
+        "iam:AttachUserPolicy",
+        "iam:CreateAccessKey",
+        "iam:CreateLoginProfile",
+        "iam:CreatePolicyVersion",
+        "iam:PassRole",
+        "iam:PassRole",
+        "iam:PassRole",
+        "iam:PassRole",
+        "iam:PassRole",
+        "iam:PassRole",
+        "iam:PassRole",
+        "iam:PassRole",
+        "iam:PassRole",
+        "iam:PutGroupPolicy",
+        "iam:PutRolePolicy",
+        "iam:PutUserPolicy",
+        "iam:SetDefaultPolicyVersion",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:UpdateLoginProfile",
+    ],
+
+    "lambda":[
+        "lambda:AddPermission",
+        "lambda:CreateEventSourceMapping",
+        "lambda:CreateFunction",
+        "lambda:CreateFunction",
+        "lambda:CreateFunction",
+        "lambda:InvokeFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+    ],
+
+    "sagemaker": [
+        "sagemaker:CreateNotebookInstance",
+        "sagemaker:CreatePresignedNotebookInstanceUrl",
+    ],
+
+    "ssm":[
+        "ssm:CreateDocument",
+        "ssm:GetCommandInvocation",
+        "ssm:ModifyDocumentPermission",
+        "ssm:SendCommand",
+        "ssm:StartSession",
+        "ssm:UpdateDocument",
+        "ssm:UpdateDocumentDefaultVersion",
+        "ssm:UpdateDocumentMetadata"
+    ],
+
+    "sts": [
+        "sts:AssumeRole"
+    ]
+}
 
 # ---------------------------
 # GetCallerIdentity
