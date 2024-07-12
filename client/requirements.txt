@@ -9,7 +9,10 @@ requests
 termcolor
 colorama
 justifytext
-flask_mongoengine
+#flask_mongoengine
+flask-mongoengine-3
 urllib3
-Flask==2.2.3
-Werkzeug==2.2.2
+Flask
+#Flask==2.2.3
+#Werkzeug==2.2.2
+Werkzeug
