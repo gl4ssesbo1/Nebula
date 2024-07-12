@@ -12,7 +12,7 @@ boto3
 aniso8601==8.0.0
 #click==7.1.2
 click==8.0
-Flask==2.2.5
+Flask
 Flask-RESTful==0.3.8
 #Flask-SQLAlchemy==2.4.3
 #itsdangerous==1.1.0
@@ -23,7 +23,7 @@ jinja2>=2.11.3
 MarkupSafe>=2.0
 pytz==2020.1
 six==1.15.0
-Werkzeug>=2.2.3
+Werkzeug
 flask_httpauth
 waitress==2.1.2
 flask-mongoengine
@@ -38,7 +38,6 @@ moto~=2.2.15
 colorama~=0.4.3
 botocore~=1.20.55
 psutil~=5.8.0
-pyinstaller~=4.7
 crtsh~=0.3.1
 mongoengine~=0.23.1
 tabulate
@@ -58,4 +57,3 @@ websocket_server
 adal
 msal
 crtsh
-PyInstaller
