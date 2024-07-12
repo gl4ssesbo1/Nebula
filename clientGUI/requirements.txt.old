@@ -1,0 +1,12 @@
+Werkzeug
+Flask
+#PySide2
+PyQt5
+prompt_toolkit
+prettytable
+botocore
+requests
+termcolor
+colorama
+justifytext
+flask_mongoengine

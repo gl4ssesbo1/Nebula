@@ -281,10 +281,11 @@ def set_module():
         if m_name == 'aws':
             try:
                 print(colored(f"[*] User {username} ran module {module} at {str(datetime.now())} on region {awsregion}", "yellow"))
+                print("other")
                 return run_aws_module.run_aws_module(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace)
 
             except:
-                return {"error": str(sys.exc_info())}, 500
+                return {"error": str(sys.exc_info())}
 
         elif m_name == 'digitalocean':
             try:

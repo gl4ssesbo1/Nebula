@@ -1,5 +1,5 @@
 from termcolor import colored
-import os
+import os, sys
 import boto3, botocore
 from inspect import signature
 
@@ -72,10 +72,12 @@ def enter_session(session_name, region, service, ua, proxy_definitions):
     return boto_session.client(**args)
 
 def run_aws_module(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace):
+
     sig = signature(imported_module.exploit)
     if len(sig.parameters) == 1 or len(sig.parameters) == 2:
         return run_aws_module_one_service(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace)
     elif len(sig.parameters) == 5:
+        print(5)
         return imported_module.exploit(all_sessions, cred_prof, useragent, web_proxies, workspace)
 
 def run_aws_module_one_service(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace):
