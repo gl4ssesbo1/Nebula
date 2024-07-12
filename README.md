@@ -1,5 +1,5 @@
 # Nebula
-<img src="./img/nebulalogo.png" alt="logo" width="200" align="center"/>
+<img src="./img/nebulalogo.png" alt="logo" width="100%" align="center"/>
 
 Nebula is a Cloud and (hopefully) DevOps Penetration Testing framework. 
 It is build with modules for each provider and each functionality. As of April 2021, it only covers AWS, but is currently an ongoing project and hopefully will continue to grow to test GCP, Azure, Kubernetes, Docker, or automation engines like Ansible, Terraform, Chef, etc.
