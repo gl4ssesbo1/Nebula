@@ -41,6 +41,38 @@ def get_azurecredentials():
     except flask_mongoengine.DoesNotExist:
         return {'error': "Credentials do not exist"}, 404
 
+@azurecredentials_blueprint.route('/api/latest/azurecredentials/devicecode', methods=['POST'])
+@jwt_required()
+def generate_access_key_azurecredentials_devicecode():
+    body = request.get_json()
+    try:
+        azurecredentials = AZURECredentials.objects.get(aws_profile_name=body.get('aws_profile_name'))
+
+        return {'azurecredentials': azurecredentials}, 200
+    except flask_mongoengine.DoesNotExist:
+        return {'error': "Credentials do not exist"}, 404
+
+@azurecredentials_blueprint.route('/api/latest/azurecredentials/generate', methods=['POST'])
+@jwt_required()
+def generate_access_key_azurecredentials():
+    body = request.get_json()
+    try:
+        azurecredentials = AZURECredentials.objects.get(aws_profile_name=body.get('aws_profile_name'))
+
+        return {'azurecredentials': azurecredentials}, 200
+    except flask_mongoengine.DoesNotExist:
+        return {'error': "Credentials do not exist"}, 404
+
+@azurecredentials_blueprint.route('/api/latest/azurecredentials/regenerate', methods=['POST'])
+@jwt_required()
+def regenerate_access_key_azurecredentials():
+    body = request.get_json()
+    try:
+        azurecredentials = AZURECredentials.objects.get(aws_profile_name=body.get('aws_profile_name'))
+
+        return {'azurecredentials': azurecredentials}, 200
+    except flask_mongoengine.DoesNotExist:
+        return {'error': "Credentials do not exist"}, 404
 
 @azurecredentials_blueprint.route('/api/latest/azurecredentials', methods=['PUT'])
 @jwt_required()
@@ -66,6 +98,6 @@ def delete_azurecredentials():
         body = request.get_json()
         azurecredentials_name = body['azurecredentials_name']
         AZURECredentials.objects.get_or_404(azurecredentials_name=azurecredentials_name).delete()
-        return '', 200
+        return {"message": "Credentials of '{}' was deleted!".format(body['aws_profile_name'])}, 200
     except:
         return sys.exc_info()[1], 500

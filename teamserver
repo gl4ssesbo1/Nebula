@@ -1,76 +1,26 @@
-#!/usr/bin/bash
+#!/bin/bash
+source ./argparse.sh
 
-function InstallDockerDockerCompose() {
-  if [[ $(id -u) -ne 0 ]] ; then
-    echo -e "\e[31m[*] Please execute the script as root with sudo to install docker and docker compose.\e[0m";
-    echo "";
-    exit 1;
-  fi
+define_arg "ap" "5000" "The API Port. By default 5000" "string" "false"
+define_arg "dH" "127.0.0.1" "The MongoDB host IP. Default is 127.0.0.1" "string" "false"
+define_arg "dP" "27017" "The MongoDB host Port. Default is 27017" "string" "false"
+define_arg "du" "" "MongoDB user" "string" "false"
+define_arg "dp" "" "Command to run. Can only be 'apply', 'destroy' or 'plan'" "string" "false"
+define_arg "dn" "" "Command to run. Can only be 'apply', 'destroy' or 'plan'" "string" "true"
+define_arg "p" "" "Command to run. Can only be 'apply', 'destroy' or 'plan'" "string" "true"
+define_arg "rd" "" "Run docker for mongo" "store_true" "false"
 
-  IFS=$(printf '\n\t')
+check_for_help "$@"
+parse_args "$@"
 
-  # Docker
+#timeout 1 bash -c "cat < /dev/null > /dev/tcp/$dH/$dP"
+#if [ $? -ne 0 ]; then
+#if [ $rd -eq  ]; then
+#  docker run -p 27017:27017 -d -it mongo
+#fi
 
-  #sudo apt update
-  #curl -fsSL https://get.docker.com -o get-docker.sh
-  #sh get-docker.sh
-  #sudo usermod --append --groups docker "$USER"
-  #sudo systemctl enable docker
-  printf '\nDocker installed successfully\n\n'
 
-  printf 'Waiting for Docker to start...\n\n'
-  #sudo systemctl enable docker
-  printf 'Docker Started\n\n'
 
-  # Docker Compose
-  printf '\nInstalling Docker Compose...\n\n'
-  URL="https://github.com/docker/compose/releases/download/$(curl https://api.github.com/repos/docker/compose/releases/latest | jq .tag_name | tr -d '"')/docker-compose-linux-x86_64"
-  curl $URL -OL
-  sudo mv ./docker-compose-linux-x86_64 /usr/local/bin/docker-compose
-  #sudo wget --output-document=/usr/local/bin/docker-compose "https://github.com/docker/compose/releases/download/$(wget --quiet --output-document=- https://api.github.com/repos/docker/compose/releases/latest | grep --perl-regexp --only-matching '"tag_name": "\K.*?(?=")')/run.sh"
-  sudo chmod +x /usr/local/bin/docker-compose
-  #sudo wget --output-document=/etc/bash_completion.d/docker-compose "https://raw.githubusercontent.com/docker/compose/$(docker-compose version --short)/contrib/completion/bash/docker-compose"
-  printf '\nDocker Compose installed successfully\n\n'
-}
-
-function RunNebula() {
-  read -r -p "Profile Name: " profile_name
-  read -s -r -p "Cosmonaut Password: " password
-
-  echo "{\"databaseHost\": \"172.20.0.3\", \"databaseName\": \"$profile_name\", \"databasePort\": 27017, \"password\": \"$password\"}" > ./teamserver.conf
-  docker-compose up -d
-}
-
-function NebulaHelp() {
-    echo "Nebula Teamserver"
-    echo "Will run the teamserver of Nebula"
-    echo "  -id  --install-docker   Install Docker and Docker-Compose"
-    echo "  -r   --run              Run Nebula"
-    echo "  -h   --help             Print this message"
-}
-
-# shellcheck disable=SC2120
-function main() {
-  if [[ $# -gt 0 ]]; then
-    case "$1" in
-      -i|--install-docker)
-          InstallDockerDockerCompose
-          ;;
-      -r|--run)
-          RunNebula
-          ;;
-      -h|--help)
-          NebulaHelp
-          ;;
-      *)
-          echo "Unknown argument: $1"
-          exit 1
-          ;;
-    esac
-  else
-    NebulaHelp
-  fi
-}
-
-# shellcheck disable=SC2068
-main $@
+source ./venv/bin/activate
+python3 teamserver.py -ap $ap -dH $dH -dP $dP -du $du -dp $dp -dn $dn -p $p
+deactivate

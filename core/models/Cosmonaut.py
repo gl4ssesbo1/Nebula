@@ -6,6 +6,7 @@ from flask import Response, request
 from flask_jwt_extended import create_access_token, jwt_required
 import datetime
 import json
+from termcolor import colored
 
 cosmonaut_blueprint = Blueprint('cosmonauts', __name__)
 
@@ -30,6 +31,7 @@ def get_cosmonaut():
 
     expires = datetime.timedelta(days=7)
     access_token = create_access_token(identity=str(cosmonaut.id), expires_delta=expires)
+    print(colored(f"[*] User {cosmonaut['cosmonaut_name']} authenticated successfully at {str(datetime.datetime.now())}", "blue"))
 
     return {'token': access_token}, 200
 
@@ -41,6 +43,10 @@ def set_cosmonaut():
         cosmonaut = Cosmonaut(**body)
         cosmonaut.hash_password()
         cosmonaut.save()
+
+        print(
+            colored(f"[*] User '{body['cosmonaut_name']}' was created at {str(datetime.datetime.now())}!", "green")
+        )
 
         return {"message": "User '{}' was created!".format(body['cosmonaut_name'])}, 200
     except:

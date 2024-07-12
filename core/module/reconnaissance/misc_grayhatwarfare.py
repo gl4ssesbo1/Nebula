@@ -123,9 +123,7 @@ def bucket_keyword_func(keyword, nr_of_results_to_be_returned, api_token, cloud_
         api_token.replace("\n", "").strip()
     )'''
 
-    bucket_url = "https://buckets.grayhatwarfare.com/api/v1/buckets/0/{}".format(
-        str(nr_of_results_to_be_returned)
-    )
+    bucket_url = f"https://buckets.grayhatwarfare.com/api/v1/buckets/0/{nr_of_results_to_be_returned}"
 
     params = {
         "access_token": api_token,

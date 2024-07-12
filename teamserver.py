@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 import os
 from termcolor import colored
@@ -37,46 +38,43 @@ from core.Listeners.WebSocket.server import start_websocket_listener
 from core.database.models import WebsocketListener
 
 parser = argparse.ArgumentParser(description='------ Nebula Teamserver Options ------')
-parser.add_argument('-ah', '--apiHost', type=str, help='The API Server Host. (Default: 127.0.0.1)', default='127.0.0.1')
+#parser.add_argument('-ah', '--apiHost', type=str, help='The API Server Host. (Default: 127.0.0.1)', default='127.0.0.1')
 parser.add_argument('-ap', '--apiPort', type=int, help='The API Server Port. (Default: 5000)', default=5000)
-parser.add_argument('-dh', '--databaseHost', type=str, help='The MongoDB Database Server Host. (Default: localhost)', default='localhost')
-parser.add_argument('-dp', '--databasePort', type=int, help='The MongoDB Database Server Port. (Default: 27017)', default=27017)
+parser.add_argument('-dH', '--databaseHost', type=str, help='The MongoDB Database Server Host. (Default: localhost)', default='localhost')
+parser.add_argument('-dP', '--databasePort', type=int, help='The MongoDB Database Server Port. (Default: 27017)', default=27017)
 parser.add_argument('-dn', '--databaseName', type=str, help='The MongoDB Database Name. (Required)')
+parser.add_argument('-du', '--databaseUser', type=str, help='The MongoDB Database User Name.')
+parser.add_argument('-dp', '--databasePassword', type=str, help='The MongoDB Database Password.')
 parser.add_argument('-p', '--password', type=str, help='The password for user \'cosmonaut\'. (Required)')
-parser.add_argument('-c', '--config-file', type=str, help='The config file path with the configs.')
+#parser.add_argument('-c', '--config-file', type=str, help='The config file path with the configs.')
 args = parser.parse_args()
 
-if args.config_file is None:
-    if not args.password and not args.databaseName:
-        print("Either use a config file or use -dn (database name) and -p (password)")
-        exit()
-    else:
-        if args.password:
-            password = args.password
-        else:
-            password = getpass("Password: ")
-            while password == "":
-                password = getpass("Password: ")
+IPv4_REGEX = "^[0-9]{1,3}[.]{1}[0-9]{1,3}[.]{1}[0-9]{1,3}[.]{1}[0-9]{1,3}$"
+IPv6_REGEX = "^([0-9a-fA-F]{1,4}[:]{0,2}){1,8}$"
 
+#if args.config_file is None:
 
-        apihost = "0.0.0.0"
-        apiport = 5000
-        host = args.databaseHost
-        port = args.databasePort
-        password = args.password
-        database = args.databaseName
+if not args.databaseName:
+    print("Provide DB Name using -dn (database name)")
+    exit()
+
+if args.password is not None:
+    password = args.password
 else:
-    if args.password or args.databaseName:
-        print("Either use a config file or use -dn (database name) and -p (password)")
-        exit()
-    else:
-        configFile = open(args.config_file, "r")
-        configFileJson = json.load(configFile)
+    password = getpass("Password: ")
+    while password == "":
+        password = getpass("Password: ")
 
-        host = configFileJson['databaseHost']
-        port = int(configFileJson['databasePort'])
-        database = configFileJson['databaseName']
-        password = configFileJson['password']
+
+host = args.databaseHost
+port = str(args.databasePort)
+database = args.databaseName
+
+if args.databaseUser is not None:
+    databaseUser = args.databaseUser
+
+if args.databasePassword is not None:
+    databasePassword = args.databasePassword
 
 all_count = 0
 show = [
@@ -209,12 +207,31 @@ app.config['JWT_SECRET_KEY'] = jwt_token
 #    'host': 'mongodb://{}:{}/{}'.format(host, port, database),
 #}
 
+with open(f"{sys.prefix}/lib/python3.10/site-packages/botocore/session.py", "r") as botocoresessionfile:
+    botocorecheck = 0
+    botocoresessionfilelines = botocoresessionfile.readlines()
+    for line in botocoresessionfilelines:
+        if 'if os.path.exists(f"{sys.prefix}/lib/python3.10/site-packages/botocore/.user-agent"' in line:
+            botocorecheck = 1
+
+    if botocorecheck == 0:
+        with open(f"{sys.prefix}/lib/python3.10/site-packages/botocore/session.py", "w") as botocoresessiontemp:
+            for bline in botocoresessionfilelines:
+                if 'return base' in bline:
+                    botocoresessiontemp.write('\t\tif os.path.exists(f"{sys.prefix}/lib/python3.10/site-packages/botocore/.user-agent"):\n'.expandtabs(4))
+                    botocoresessiontemp.write('\t\t\twith open(f"{sys.prefix}/lib/python3.10/site-packages/botocore/.user-agent") as uafile:\n'.expandtabs(4))
+                    botocoresessiontemp.write('\t\t\t\tbase = uafile.read().replace("\\n", "").strip()\n'.expandtabs(4))
+                    botocoresessiontemp.write('\n')
+                    botocoresessiontemp.write(bline)
+
+                else:
+                    botocoresessiontemp.write(bline)
+
 try:
-
-    a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    location = ("127.0.0.1", port)
-    result_of_check = a_socket.connect_ex(location)
-
+    #a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #location = (host, port)
+    #result_of_check = a_socket.connect_ex(location)
+    result_of_check = 0
     if result_of_check == 0:
         mongo_instance_verify = input(colored("[*] Port is busy. Is a MongoDB instance running there? [y/N] ", "red"))
         if not mongo_instance_verify.strip().replace("\n", "") == 'y' and not mongo_instance_verify.strip().replace(
@@ -222,11 +239,12 @@ try:
             print(colored("[*] Choose another port or stop the other service!", "red"))
             exit()
     else:
+        '''
         print(colored("[*] Pulling MongoDB Image...", "green"))
         client = docker.from_env()
         client.images.pull('mongo')
         print(colored("[*] MongoDB Image Pulled!", "green"))
-
+        '''
         workspace_directory = "/home/testdocker/datafolder"
 
         if not os.path.exists("{}/workspaces/".format(os.getcwd())):
@@ -235,7 +253,7 @@ try:
         if not os. path.exists("./workspaces/{}".format(database)):
             os.mkdir("{}/workspaces/{}".format(os.getcwd(), database))
 
-        
+        '''
         container = client.containers.run(
             'mongo',
             ports={
@@ -255,16 +273,34 @@ try:
             colored("[*] MongoDB started on container ID", "green"),
             colored(container.id, "blue")
         ))
+        '''
+    if databaseUser:
+        if re.match(IPv4_REGEX, host) or re.match(IPv6_REGEX, host):
+            app.config['MONGODB_SETTINGS'] = {
+                'host': f'mongodb://{databaseUser}:{databasePassword}@{host}:{port}/{database}'
+                #'host': 'mongodb://{0}:{1},{0}:{2},{0}:{3}/{4}?replicaSet=mongodb-replicaset'.format(host, port, port+1, port+2, database)
+            }
+        else:
+            app.config['MONGODB_SETTINGS'] = {
+                'host': f'mongodb+srv://{databaseUser}:{databasePassword}@{host}/{database}'
+                #'host': 'mongodb://{0}:{1},{0}:{2},{0}:{3}/{4}?replicaSet=mongodb-replicaset'.format(host, port, port+1, port+2, database)
+            }
+    else:
+        if re.match(IPv4_REGEX, host) or re.match(IPv6_REGEX, host):
+            app.config['MONGODB_SETTINGS'] = {
+                'host': f'mongodb://{host}:{port}/{database}'
+                # 'host': 'mongodb://{0}:{1},{0}:{2},{0}:{3}/{4}?replicaSet=mongodb-replicaset'.format(host, port, port+1, port+2, database)
+            }
+        else:
+            app.config['MONGODB_SETTINGS'] = {
+                'host': f'mongodb+srv://{host}/{database}'
+                # 'host': 'mongodb://{0}:{1},{0}:{2},{0}:{3}/{4}?replicaSet=mongodb-replicaset'.format(host, port, port+1, port+2, database)
+            }
 
-    app.config['MONGODB_SETTINGS'] = {
-        'host': 'mongodb://{0}:{1}/{2}'.format(host, port, database)
-        #'host': 'mongodb://{0}:{1},{0}:{2},{0}:{3}/{4}?replicaSet=mongodb-replicaset'.format(host, port, port+1, port+2, database)
-    }
-
-    app.config['MONGODB_DB'] = database
-    app.config['MONGODB_HOST'] = host
-    app.config['MONGODB_PORT'] = port
-    app.config['MONGODB_CONNECT'] = False
+    #app.config['MONGODB_DB'] = database
+    #app.config['MONGODB_HOST'] = host
+    #app.config['MONGODB_PORT'] = port
+    #app.config['MONGODB_CONNECT'] = False
 
     print(colored('------------------------------------------------------------', "green"))
 
@@ -286,8 +322,8 @@ try:
 
     # I am not using these on Nebula. So it's not an information disclosure. It's just sth I plan to use latter.
 
-    app.config['MONGODB_USERNAME'] = 'user'
-    app.config['MONGODB_PASSWORD'] = 'pass'
+    #app.config['MONGODB_USERNAME'] = 'user'
+    #app.config['MONGODB_PASSWORD'] = 'pass'
 
     initialize_db(app)
 
@@ -397,7 +433,7 @@ def startWebsocketListeners():
             exit()
 
 if __name__ == "__main__":
-    apihost = args.apiHost
+    apihost = "0.0.0.0"
     apiport = args.apiPort
     print("{} '{}:{}'".format(
         colored("[*] API Server set to:", "green"),

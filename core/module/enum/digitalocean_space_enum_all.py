@@ -90,7 +90,10 @@ def exploit(profile):
         try:
             bucketOwnership = profile.get_bucket_ownership_controls(Bucket=bucket["Name"])
             del (bucketOwnership["ResponseMetadata"])
-            bucket["Ownership"] = bucketOwnership['OwnershipControls']
+            if bucketOwnership["OwnershipControls"] == {}:
+                bucket["Ownership"] = None
+            else:
+                bucket["Ownership"] = bucketOwnership['OwnershipControls']['Rules']['ObjectOwnership']
         except botocore.exceptions.ClientError:
             bucket["Ownership"] = None
 
@@ -154,41 +157,45 @@ def exploit(profile):
             bucketObjects = profile.list_objects_v2(Bucket=bucket["Name"], MaxKeys=2)
             if bucketObjects['IsTruncated']:
                 bucketObjects = profile.list_objects_v2(Bucket=bucket["Name"],
-                                                        ContinuationToken=bucketObjects['NextContinuationToken'])
+                                ContinuationToken=bucketObjects['NextContinuationToken']
+                )
             del (bucketObjects["ResponseMetadata"])
 
-            for bucketObject in bucketObjects['Contents']:
-                try:
-                    bucketObjectACL = profile.get_object_acl(Bucket=bucket["Name"], Key=bucketObject['Key'])
-                    del (bucketObjectACL["ResponseMetadata"])
-                    bucketObject['ObjectACL'] = bucketObjectACL
-                except botocore.exceptions.ClientError:
-                    bucketObject['ObjectACL'] = None
+            if bucketObjects['KeyCount'] > 0:
+                for bucketObject in bucketObjects['Contents']:
+                    try:
+                        bucketObjectACL = profile.get_object_acl(Bucket=bucket["Name"], Key=bucketObject['Key'])
+                        del (bucketObjectACL["ResponseMetadata"])
+                        bucketObject['ObjectACL'] = bucketObjectACL
+                    except botocore.exceptions.ClientError:
+                        bucketObject['ObjectACL'] = None
 
-                try:
-                    bucketObjectLegalHold = profile.get_object_legal_hold(Bucket=bucket["Name"],
-                                                                          Key=bucketObject['Key'])
-                    del (bucketObjectLegalHold["ResponseMetadata"])
-                    bucketObject['ObjectLegalHold'] = bucketObjectLegalHold['LegalHold']['Status']
-                except botocore.exceptions.ClientError:
-                    bucketObject['ObjectLegalHold'] = None
+                    try:
+                        bucketObjectLegalHold = profile.get_object_legal_hold(Bucket=bucket["Name"],
+                                                                              Key=bucketObject['Key'])
+                        del (bucketObjectLegalHold["ResponseMetadata"])
+                        bucketObject['ObjectLegalHold'] = bucketObjectLegalHold['LegalHold']['Status']
+                    except botocore.exceptions.ClientError:
+                        bucketObject['ObjectLegalHold'] = None
 
-                try:
-                    bucketObjectRetention = profile.get_object_retention(Bucket=bucket["Name"],
-                                                                         Key=bucketObject['Key'])
-                    del (bucketObjectRetention["ResponseMetadata"])
-                    bucketObject['Retention'] = bucketObjectRetention['Retention']
-                except botocore.exceptions.ClientError:
-                    bucketObject['Retention'] = None
+                    try:
+                        bucketObjectRetention = profile.get_object_retention(Bucket=bucket["Name"],
+                                                                             Key=bucketObject['Key'])
+                        del (bucketObjectRetention["ResponseMetadata"])
+                        bucketObject['Retention'] = bucketObjectRetention['Retention']
+                    except botocore.exceptions.ClientError:
+                        bucketObject['Retention'] = None
 
-                try:
-                    bucketObjectTagging = profile.get_object_tagging(Bucket=bucket["Name"], Key=bucketObject['Key'])
-                    del (bucketObjectTagging["ResponseMetadata"])
-                    bucketObject['Tags'] = bucketObjectTagging['TagSet']
-                except botocore.exceptions.ClientError:
-                    bucketObject['Tags'] = None
+                    try:
+                        bucketObjectTagging = profile.get_object_tagging(Bucket=bucket["Name"], Key=bucketObject['Key'])
+                        del (bucketObjectTagging["ResponseMetadata"])
+                        bucketObject['Tags'] = bucketObjectTagging['TagSet']
+                    except botocore.exceptions.ClientError:
+                        bucketObject['Tags'] = None
 
-            bucket["Objects"] = bucketObjects
+                bucket["Objects"] = bucketObjects
+            else:
+                bucket["Objects"] = []
 
         except botocore.exceptions.ClientError:
             bucket["Objects"] = None
@@ -223,15 +230,13 @@ def exploit(profile):
             "digitalocean_s3_deleted_objects": bucket['DeletedFiles'],
             "digitalocean_s3_space_policy_status": bucket['PolicyStatus'],
             "digitalocean_s3_space_policy": bucket['Policy'],
-            "digitalocean_s3_space_acl": bucket['ACL'],
+            "digitalocean_s3_space_acl": bucket['PublicAccessBlock'],
             "digitalocean_s3_is_website": False,
             "digitalocean_s3_cors": bucket['CORS']
         }
 
         #if bucket['Website'] is not None:
         #    database_data["digitalocean_s3_is_website"]: True
-
-        print(database_data)
 
         try:
             do_user = DigitalOceanSpace.objects.get(digitalocean_s3_space_name=bucket['Name'])

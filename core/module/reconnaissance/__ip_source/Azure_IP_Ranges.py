@@ -1,7 +1,4 @@
-AZURE_IP_RANGE = {
-  "changeNumber": 156,
-  "cloud": "Public",
-  "values": [
+AZURE_IP_RANGE = [
     {
       "name": "ActionGroup",
       "id": "ActionGroup",
@@ -82628,4 +82625,3 @@ AZURE_IP_RANGE = {
       }
     }
   ]
-}

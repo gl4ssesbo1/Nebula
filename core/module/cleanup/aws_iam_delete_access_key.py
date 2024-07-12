@@ -1,3 +1,5 @@
+import sys
+
 from termcolor import colored
 
 author = {
@@ -31,17 +33,24 @@ description = "Delete access key of a user by providing it."
 aws_command = "aws iam delete-access-key --access-key-id <access key> --user-name <user> --region <region> --profile <profile>"
 
 def exploit(profile, workspace):
-    try:
-        user = variables['USERNAME']['value']
-        access_key = variables['ACCESS-KEY']['value']
+    user = variables['USERNAME']['value']
+    access_key = variables['ACCESS-KEY']['value']
 
+    try:
         profile.delete_access_key(
             UserName=user,
             AccessKeyId=access_key
         )
-        print(colored("Access Key {} of User {} was successfully deleted.".format(colored(user, "blue"), colored(access_key, "blue")), "green"))
 
-    except profile.exceptions.NoSuchEntityException:
-        print(colored("[*] This user does not exist or has no Login Profile.", "red"))
-    except profile.exceptions.LimitExceededException:
-        print("Limited thing")
+        status = f"Access Key {access_key} of User {user} was successfully deleted."
+
+    except:
+        status = f"Access Key {access_key} of User {user} was not deleted with error code: {str(sys.exc_info()[1])}."
+
+    return {
+        "User": {
+            "User": user,
+            "AccessKey": access_key,
+            "Status": status
+        }
+    }

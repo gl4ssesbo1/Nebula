@@ -32,7 +32,8 @@ show = [
     'reconnaissance',
     'stager',
     'misc',
-    'postexploitation'
+    'postexploitation',
+    'initialaccess'
 ]
 
 nr_of_modules = {
@@ -48,14 +49,15 @@ nr_of_modules = {
     'reconnaissance': "",
     'stager': "",
     'misc': "",
-    'postexploitation': ""
+    'postexploitation': "",
+    "initialaccess": ""
 }
 
 nr_of_cloud_modules = {
     "aws": 0,
     "gcp": 0,
     "azure": 0,
-    "o365": 0,
+    "office365": 0,
     "docker": 0,
     "kube": 0,
     "misc": 0,
@@ -67,7 +69,7 @@ clouds = [
     "aws",
     "gcp",
     "azure",
-    "o365",
+    "office365",
     "docker",
     "kube",
     "azuread",
@@ -75,6 +77,25 @@ clouds = [
     "digitalocean"
 ]
 
+@module_blueprint.route('/api/latest/search', methods=['GET'])
+@jwt_required()
+def search_modules():
+    allmodules = []
+    body = request.get_json()
+    searchstring = body['searchstring']
+    for module in show:
+        arr = os.listdir("./core/module/" + module)
+        for x in arr:
+            if "__" in x:
+                continue
+            elif ".git" in x:
+                continue
+            else:
+                if searchstring in x:
+                    allmodules.append(x.replace(".py", ""))
+
+
+    return {"modules": allmodules}, 200
 
 @module_blueprint.route('/api/latest/modules', methods=['GET'])
 @jwt_required()
@@ -221,8 +242,8 @@ def set_module():
             )
 
     for az_sess in azure_sessions:
-        az_sess['profile'] = az_sess['azure_creds_id']
-        del (az_sess['azure_creds_id'])
+        az_sess['profile'] = az_sess['azure_creds_name']
+        del (az_sess['azure_creds_name'])
         az_sess['provider'] = 'AZURE'
 
         all_sessions.append(az_sess)
@@ -260,22 +281,25 @@ def set_module():
         if m_name == 'aws':
             try:
                 print(colored(f"[*] User {username} ran module {module} at {str(datetime.now())} on region {awsregion}", "yellow"))
-                return run_aws_module.run_aws_module(imported_module, all_sessions, cred_prof, useragent, web_proxies)
+                return run_aws_module.run_aws_module(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace)
 
             except:
-                return {"error": str(sys.exc_info()[1])}, 500
+                return {"error": str(sys.exc_info())}, 500
 
         elif m_name == 'digitalocean':
             try:
-                print("Running DigitalOcean Module")
+                print(colored(f"[*] User {username} ran module {module} at {str(datetime.now())}",
+                              "yellow"))
                 return run_digitalocean_module.run_digitalocean_module(imported_module, all_sessions, cred_prof,
                                                                        useragent)
 
             except:
-                return {"error": str(sys.exc_info()[1])}, 500
+                return {"error": str(sys.exc_info())}, 500
 
         elif m_name == 'azure':
             try:
+                print(colored(f"[*] User {username} ran module {module} at {str(datetime.now())}",
+                              "yellow"))
                 return run_azure_module.run_azure_module(
                     imported_module, all_sessions, cred_prof, workspace, useragent)
 
@@ -284,14 +308,18 @@ def set_module():
 
         elif m_name == 'azuread':
             try:
+                print(colored(f"[*] User {username} ran module {module} at {str(datetime.now())}",
+                              "yellow"))
                 return run_azuread_module.run_azuread_module(imported_module, all_sessions,
-                                                             cred_prof, useragent,
+                                                             cred_prof, useragent
                                                              )
             except:
                 return {"error": str(sys.exc_info()[1])}, 500
 
         elif m_name == 'office365':
             try:
+                print(colored(f"[*] User {username} ran module {module} at {str(datetime.now())}",
+                              "yellow"))
                 return run_office365_module.run_o365_module(
                                                             imported_module, all_sessions,
                                                              cred_prof, useragent
@@ -301,12 +329,16 @@ def set_module():
 
         elif m_name == 'gcp':
             try:
+                print(colored(f"[*] User {username} ran module {module} at {str(datetime.now())}",
+                              "yellow"))
                 return run_gcp_module.run_gcp_module(imported_module, all_sessions, cred_prof, useragent)
 
             except:
                 return {"error": str(sys.exc_info()[1])}, 500
         else:
             try:
+                print(colored(f"[*] User {username} ran module {module} at {str(datetime.now())}",
+                              "yellow"))
                 return imported_module.exploit(workspace)
             except:
                 return {"error": str(sys.exc_info()[1])}, 500

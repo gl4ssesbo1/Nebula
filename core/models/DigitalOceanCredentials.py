@@ -66,6 +66,6 @@ def delete_digitaloceancredentials():
         body = request.get_json()
         digitalocean_profile_name = body['digitalocean_profile_name']
         DigitalOceanCredentials.objects.get_or_404(digitalocean_profile_name=digitalocean_profile_name).delete()
-        return '', 200
+        return {"message": "Credentials of '{}' were deleted!".format(body['digitalocean_profile_name'])}, 200
     except:
         return sys.exc_info()[1], 500

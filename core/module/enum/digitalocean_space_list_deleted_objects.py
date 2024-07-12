@@ -22,7 +22,7 @@ variables = {
     },
     "BUCKET-NAMES": {
         "value": "",
-        "required": "false",
+        "required": "true",
         "description": "A specific bucket or a list of buckets split by comma."
     }
 }

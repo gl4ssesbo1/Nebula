@@ -60,7 +60,7 @@ def module_count(nr_of_cloud_modules, nr_of_modules, all_count):
     print("\t\t\t\t{} aws\t\t{} gcp\t\t{} azure\t\t{} office365".format(nr_of_cloud_modules['aws'],
                                                                         nr_of_cloud_modules['gcp'],
                                                                         nr_of_cloud_modules['azure'],
-                                                                        nr_of_cloud_modules['o365']))
+                                                                        nr_of_cloud_modules['office365']))
     print("\t\t\t\t{} docker\t{} kubernetes\t{} misc\t\t{} azuread".format(nr_of_cloud_modules['docker'],
                                                                            nr_of_cloud_modules['kube'],
                                                                            nr_of_cloud_modules['misc'],
@@ -74,11 +74,11 @@ def module_count(nr_of_cloud_modules, nr_of_modules, all_count):
     print("\t\t\t\t{} listeners\t{} lateral movement\t{} detection bypass".format(nr_of_modules['listeners'],
                                                                                   nr_of_modules['lateralmovement'],
                                                                                   nr_of_modules['detectionbypass']))
-    print("\t\t\t\t{} privesc\t{} reconnaissance\t{} stager\t{} postexploitation".format(nr_of_modules['privesc'],
+    print("\t\t\t\t{} privesc\t{} reconnaissance\t{} stager".format(nr_of_modules['privesc'],
                                                                     nr_of_modules['reconnaissance'],
-                                                                    nr_of_modules['stager'],
-                                                                    nr_of_modules['postexploitation']))
-    print("\t\t\t\t{} misc".format(nr_of_modules['misc']))
+                                                                    nr_of_modules['stager']
+                                                                    ))
+    print(f"\t\t\t\t{nr_of_modules['misc']} misc\t\t{nr_of_modules['initialaccess']} initialaccess\t\t{nr_of_modules['postexploitation']} postexploitation")
 
 
 def disclaimer():
@@ -102,7 +102,7 @@ def disclaimer():
 def module_count_without_banner(nr_of_cloud_modules, nr_of_modules, all_count):
     print("{} aws\t\t{} gcp\t\t{} azure\t\t{} office365".format(nr_of_cloud_modules['aws'], nr_of_cloud_modules['gcp'],
                                                                 nr_of_cloud_modules['azure'],
-                                                                nr_of_cloud_modules['o365']))
+                                                                nr_of_cloud_modules['office365']))
     print("{} docker\t{} kubernetes\t{} misc\t\t{} azuread".format(nr_of_cloud_modules['docker'],
                                                                    nr_of_cloud_modules['kube'],
                                                                    nr_of_cloud_modules['misc'],
@@ -116,8 +116,8 @@ def module_count_without_banner(nr_of_cloud_modules, nr_of_modules, all_count):
     print("{} listeners\t{} lateral movement\t{} detection bypass".format(nr_of_modules['listeners'],
                                                                           nr_of_modules['lateralmovement'],
                                                                           nr_of_modules['detectionbypass']))
-    print("{} privesc\t{} reconnaissance\t{} stager\t{} postexploitation".format(nr_of_modules['privesc'],
+    print("{} privesc\t{} reconnaissance\t{} stager".format(nr_of_modules['privesc'],
                                                                     nr_of_modules['reconnaissance'],
-                                                                    nr_of_modules['stager'],
-                                                                    nr_of_modules['postexploitation']))
-    print("{} misc".format(nr_of_modules['misc']))
+                                                                    nr_of_modules['stager']
+                                                                    ))
+    print(f"{nr_of_modules['misc']} misc\t\t{nr_of_modules['initialaccess']} initialaccess\t\t{nr_of_modules['postexploitation']} postexploitation")

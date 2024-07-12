@@ -1,201 +1,257 @@
-from termcolor import colored
-from datetime import datetime
-from pydoc import pipepager
-import sys
-import json
-import re
-import socket
 import ipaddress
+import re
+import sys
+
+from dns import resolver
+
 from __ip_source.AWS_IP_Ranges import AWS_IP_RANGE
 from __ip_source.Azure_IP_Ranges import AZURE_IP_RANGE
-from __ip_source.GCP_IP_Ranges import GCP_IP_RANGE
 from __ip_source.DOIPRange import DOIPRange
+from __ip_source.GCP_IP_Ranges import GCP_IP_RANGE
 
 author = {
-	"name": "gl4ssesbo1",
-	"twitter": "https://twitter.com/gl4ssesbo1",
-	"github": "https://github.com/gl4ssesbo1",
-	"blog": "https://www.pepperclipp.com/"
+    "name": "gl4ssesbo1",
+    "twitter": "https://twitter.com/gl4ssesbo1",
+    "github": "https://github.com/gl4ssesbo1",
+    "blog": "https://www.pepperclipp.com/"
 }
 
 needs_creds = False
 
 variables = {
-	"SERVICE": {
-		"value": "none",
-		"required": "true",
-		"description": "The service that will be used to run the module. It cannot be changed."
-	},
-	"IP-FILE": {
-		"value": "",
-		"required": "false",
-		"description": "The path of the file with the IPs (IPv4 and IPv6) or Domain Name to test."
-	}
+    "SERVICE": {
+        "value": "none",
+        "required": "true",
+        "description": "The service that will be used to run the module. It cannot be changed."
+    },
+    "IP-FILE": {
+        "value": "",
+        "required": "true",
+        "description": "The path of the file with the IPs (IPv4 and IPv6) or Domain Name to test.",
+        "iswordlist": True,
+        "wordlistvalue": []
+    }
 }
+
 description = "Checks for subdomains of the domain by enumerating certificates from crt.sh"
 aws_command = "None"
 
-all_hosts = {
-	"resolved": {
-		"ipv4": {},
-		"ipv6": {},
-		"domain": {}
-	},
-	"unresolved": {
-		"domain": {}
-	},
-}
-
 
 def exploit(workspace):
-	split_by_services = {
-		"Services": {
+    IPv4_REGEX = "^[0-9]{1,3}[.]{1}[0-9]{1,3}[.]{1}[0-9]{1,3}[.]{1}[0-9]{1,3}$"
+    IPv6_REGEX = "^([0-9a-fA-F]{1,4}[:]{0,2}){1,8}$"
 
-		}
-	}
+    ipfilename = variables['IP-FILE']['value']
+    ipfile = variables['IP-FILE']['wordlistvalue']
+    all_domain = []
+    all_ips = []
 
-	IPv4_REGEX = "^[0-9]{1,3}[.]{1}[0-9]{1,3}[.]{1}[0-9]{1,3}[.]{1}[0-9]{1,3}$"
-	IPv6_REGEX = "^([0-9a-fA-F]{1,4}[:]{0,2}){1,8}$"
+    split_by_services = {
+        "IP-FILE": ipfilename,
+        "Vendors": {
+            "AWS": [],
+            "AZURE": [],
+            "GCP": [],
+            "DigitalOcean": [],
+            "NoVendor": []
+        }
+    }
 
-	ip_file = variables['IP-FILE']['value']
-	split_by_services['IP-FILE'] = ip_file
-	all_domain = []
+    try:
+        for ip in ipfile:
+            if re.match(IPv4_REGEX, ip.strip()):
+                all_ips.append(ip.strip())
 
-	try:
-		ipfile = open(ip_file, 'r')
+            elif re.match(IPv6_REGEX, ip.strip()):
+                all_ips.append(ip.strip())
 
-		for ip in ipfile.readlines():
-			if re.match(IPv4_REGEX, ip.strip()):
-				(all_hosts["resolved"]['ipv4'][ip.strip()]) = {}
+            else:
+                all_domain.append(ip.strip())
 
-			elif re.match(IPv6_REGEX, ip.strip()):
-				(all_hosts["resolved"]['ipv6'][ip.strip()]) = {}
+        for d in all_domain:
+            singlehost = {
+                "Host": d,
+                "Resolved": "",
+                "Region": "",
+                "Service": ""
+            }
+            try:
+                resolved_domain = resolver.resolve(d, 'CNAME')[0].to_text()
+                singlehost["Resolved"] = resolved_domain
+                vendor = findDomainVendor(resolved_domain)
+                if vendor is not None:
+                    singlehost["Region"] = vendor[1]
+                    singlehost["Service"] = vendor[2]
+                    split_by_services["Vendors"][vendor[0]].append(singlehost)
 
-			else:
-				all_domain.append(ip.strip())
+                else:
+                    split_by_services["Vendors"]["NoVendor"].append(singlehost)
 
-		if len(all_domain) > 0:
-			for d in all_domain:
-				try:
-					resolved_domain = socket.gethostbyname(d)
-					(all_hosts["resolved"]["domain"][d]) = {
-						"IP": resolved_domain
-					}
+            except resolver.NoAnswer:
+                try:
+                    resolved_domain = resolver.resolve(d, 'A')[0].to_text()
 
-				except socket.gaierror:
-					(all_hosts["unresolved"]["domain"][d]) = {
-							"IP": "Unresolved, Probably does not exist"
-						}
+                    singlehost["Resolved"] = resolved_domain
+                    vendor = findIPVendor(resolved_domain)
 
-		if len(all_hosts["resolved"]["domain"]) > 0:
-			for key, value in (all_hosts["resolved"]["domain"]).items():
-				service = find_aws_category(value['IP'], 'ip_prefix')
-				(all_hosts["resolved"]["domain"][key]["Service"]) = service
-				(all_hosts["resolved"]["domain"][key]["network_border_group"]) = service
-				(all_hosts["resolved"]["domain"][key]["region"]) = service
-				(all_hosts["resolved"]["domain"][key]["vendor"]) = "Amazon"
-				thedict = value
-				thedict["domain"] = key
+                    if vendor is not None:
+                        if vendor[0] == "DigitalOcean":
+                            singlehost["Service"] = "droplet"
+                        else:
+                            singlehost["Service"] = vendor[2]
+                        singlehost["Region"] = vendor[1]
+                        split_by_services["Vendors"][vendor[0]].append(singlehost)
 
-				try:
-					if not split_by_services["Services"][service]:
-						split_by_services["Services"][service] = []
+                    else:
+                        split_by_services["Vendors"]["NoVendor"].append(singlehost)
 
-				except KeyError:
-					split_by_services["Services"][service] = []
+                except resolver.NoAnswer:
+                    resolved_domain = resolver.resolve(d, 'AAAA')[0].to_text()
+                    singlehost["Resolved"] = resolved_domain
+                    vendor = findIPVendor(resolved_domain)
+                    if vendor is not None:
+                        if vendor[0] == "DigitalOcean":
+                            singlehost["Service"] = "droplet"
+                        else:
+                            singlehost["Service"] = vendor[2]
+                        singlehost["Region"] = vendor[1]
+                        singlehost["Service"] = vendor[2]
+                        split_by_services["Vendors"][vendor[0]].append(singlehost)
 
-				(split_by_services["Services"][service]).append(thedict)
+                    else:
+                        split_by_services["Vendors"]["NoVendor"].append(singlehost)
 
-		if len(all_hosts["resolved"]['ipv4']) > 0:
-			for key, value in (all_hosts["resolved"]["domain"]).items():
-				service = find_aws_category(value['IP'], 'ip_prefixes')
-				(all_hosts["resolved"]['ipv4'][key]["Service"]) = service
-				(all_hosts["resolved"]['ipv4'][key]["network_border_group"]) = service
-				(all_hosts["resolved"]['ipv4'][key]["region"]) = service
-				(all_hosts["resolved"]["ipv4"][key]["vendor"]) = "Amazon"
-				thedict = value
-				thedict['IP'] = key
+            except resolver.NXDOMAIN:
+                singlehost["Resolved"] = "Noresolve"
+                singlehost["Service"] = None
 
-				try:
-					if not split_by_services["Services"][service]:
-						split_by_services["Services"][service] = []
+                split_by_services["Vendors"]["NoVendor"].append(singlehost)
 
-				except KeyError:
-					split_by_services["Services"][service] = []
+        for i in all_ips:
+            singlehost = {
+                "Host": i,
+                "Resolved": i,
+                "Region": "",
+                "Service": ""
+            }
+            try:
+                vendor = findIPVendor(i)
+                if vendor is not None:
+                    singlehost["Region"] = vendor[1]
+                    singlehost["Service"] = vendor[2]
+                    split_by_services["Vendors"][vendor[0]].append(singlehost)
 
-				(split_by_services["Services"][service]).append(thedict)
+                else:
+                    split_by_services["Vendors"]["NoVendor"].append(singlehost)
 
-		if len(all_hosts["resolved"]['ipv6']) > 0:
-			for key, value in (all_hosts["resolved"]["domain"]).items():
-				service = find_aws_category(value['IP'], 'ipv6_prefix')
-				(all_hosts["resolved"]['ipv6'][key]["Service"]) = service
-				(all_hosts["resolved"]['ipv6'][key]["network_border_group"]) = service
-				(all_hosts["resolved"]['ipv6'][key]["region"]) = service
-				(all_hosts["resolved"]["ipv6"][key]["vendor"]) = "Amazon"
-				thedict = value
-				thedict['IP'] = key
+            except:
+                singlehost["Resolved"] = "Noresolve"
+                singlehost["Service"] = None
 
-				try:
-					if not split_by_services["Services"][service]:
-						split_by_services["Services"][service] = []
-
-				except KeyError:
-					split_by_services["Services"][service] = []
-
-				(split_by_services["Services"][service]).append(thedict)
-
-		del key
-		del value
-
-		ipfile.close()
-
-		for key in split_by_services['Services']:
-			if key == None:
-				del split_by_services['Services'][key]
-				break
-
-		return {
-				   "IP-FILE": split_by_services
-			   }, 200
-
-	except:
-		e = sys.exc_info()
-		return {"error": str(e)}, 500
-
-def find_aws_ips(ips):
-	unresolved = []
-	resolved = []
-	return {
-		"resolved": resolved,
-		"unresolved": unresolved,
-	}
+                split_by_services["Vendors"]["NoVendor"].append(singlehost)
 
 
-def find_aws_category(ip, type):
-	an_address = ipaddress.ip_address(ip)
-	for ip4 in AWS_IP_RANGE['prefixes']:
-		a_network = ipaddress.ip_network(ip4[type])
-		if an_address in a_network:
-			return ip4['service']
+
+        return {
+            "IP-FILE": split_by_services
+        }, 200
+
+    except:
+        e = sys.exc_info()
+        return {"error": str(e)}, 500
 
 
-def find_azure_ips(ips):
-	print()
+def findDomainVendor(host):
+    if "amazonaws.com" in host:
+        return findAWSService(resolver.resolve(host, 'A')[0].to_text())
+    elif "azure" in host or "windows" in host:
+        return findAzureService(resolver.resolve(host, 'A')[0].to_text())
+    elif "google" in host:
+        return findGCPService(resolver.resolve(host, 'A')[0].to_text())
+    elif "digitalocean" in host:
+        servicelist = findDODomain(host)
+        if servicelist[1] is None:
+            region = findDOService(resolver.resolve(host, 'A')[0].to_text())
+            if region is not None:
+                servicelist[1] = region[1]
+        return servicelist
+    else:
+        return None
+
+def findDODomain(host):
+    if "digitaloceanspaces.com" in host:
+        return ["DigitalOcean", host.split(".")[1], "space"]
+    elif "k8s.ondigitalocean.com" in host:
+        return ["DigitalOcean", None, "kube"]
+    elif "doserverless.co" in host:
+        return ["DigitalOcean", host.split("-")[1], "function"]
+    elif "ondigitalocean.com" in host:
+        return ["DigitalOcean", host.split("-")[2], "database"]
+    elif "ondigitalocean.app" in host:
+        return ["DigitalOcean", None, "app"]
+    elif "registry.digitalocean.com/crbsides" in host:
+        return ["DigitalOcean", None, "app"]
+
+def findIPVendor(host):
+    awsservice = findAWSService(host)
+    if awsservice is not None:
+        return awsservice
+
+    azureService = findAzureService(host)
+    if azureService is not None:
+        return azureService
+
+    gcpService = findGCPService(host)
+    if gcpService is not None:
+        return gcpService
+
+    doService = findDOService(host)
+    if doService is not None:
+        return doService
+
+    return None
+
+def findGCPService(host):
+    an_address = ipaddress.ip_address(host)
+    for gcpIP in GCP_IP_RANGE:
+        if "ipv6Prefix" in gcpIP:
+            gcpnetwork = gcpIP['ipv6Prefix']
+        else:
+            gcpnetwork = gcpIP['ipv4Prefix']
+
+        if an_address in ipaddress.ip_network(gcpnetwork):
+            return ["GCP", gcpIP['region'], gcpIP["service"]]
+    return None
 
 
-def find_gcp_ips(ips):
-	print()
+def findAzureService(host):
+    an_address = ipaddress.ip_address(host)
+    for azIPJSON in AZURE_IP_RANGE:
+        for azIP in azIPJSON['properties']['addressPrefixes']:
+            if an_address in ipaddress.ip_network(azIP):
+                if azIPJSON['properties']['region'] == "":
+                    return ["AZURE", "global", azIPJSON["name"].split(",")[0]]
+
+                return ["AZURE", azIPJSON['properties']['region'], azIPJSON["name"].split(",")[0]]
+    return None
 
 
-def find_o365_ips(ips):
-	print()
+def findDOService(host):
+    an_address = ipaddress.ip_address(host)
+    for doIP in DOIPRange:
+        if an_address in ipaddress.ip_network(doIP['IPRange']):
+            return ["DigitalOcean", doIP["Location"], None]
+    return None
 
-def find_do_ip(ips):
-	DOIPs = []
-	for ip in ips:
-		an_address = ipaddress.ip_address(ip)
-		for doIP in DOIPRange:
-			a_network = ipaddress.ip_network(doIP['IPRange'])
-			if an_address in a_network:
-				DOIPs.append({"IP": ip, "Region": doIP['Region']})
-	return DOIPs
+
+def findAWSService(host):
+    an_address = ipaddress.ip_address(host)
+
+    for ip4 in AWS_IP_RANGE['prefixes']:
+        if "ip_prefix" in ip4:
+            if an_address in ipaddress.ip_network(ip4["ip_prefix"]):
+                return ["AWS", ip4['region'], ip4['service']]
+        else:
+            if an_address in ipaddress.ip_network(ip4["ipv6_prefix"]):
+                return ["AWS", ip4['region'], ip4['service']]
+    return None

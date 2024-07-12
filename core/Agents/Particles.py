@@ -7,6 +7,7 @@ particle_blueprint = Blueprint('particles', __name__)
 
 #auth = HTTPBasicAuth()
 
+@jwt_required()
 @particle_blueprint.route('/api/latest/particles', methods=['GET'])
 def list_particles():
     particles = Listeners.objects().to_json()

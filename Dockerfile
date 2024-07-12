@@ -1,5 +1,4 @@
-FROM python:3.9
-#FROM python:3.8-slim-buster
+FROM python:3.10
 
 WORKDIR /nebula
 COPY . .
@@ -16,4 +15,4 @@ RUN dpkg -i session-manager-plugin.deb
 RUN service docker start
 RUN ls /nebula
 
-ENTRYPOINT python3.9 teamserver.py -c teamserver.conf
+ENTRYPOINT ["python3", "teamserver.py"]

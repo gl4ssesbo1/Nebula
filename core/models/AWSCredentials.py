@@ -85,6 +85,6 @@ def delete_awscredentials():
         body = request.get_json()
         aws_profile_name = body['aws_profile_name']
         AWSCredentials.objects.get_or_404(aws_profile_name=aws_profile_name).delete()
-        return {"message": 'User Deleted Successfully'}, 200
+        return {"message": "Credentials of '{}' was deleted!".format(body['aws_profile_name'])}, 200
     except:
         return {"error": str(sys.exc_info()[1])}, 500

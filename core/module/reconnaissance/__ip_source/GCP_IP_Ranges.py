@@ -1,7 +1,5 @@
-GCP_IP_RANGE = {
-  "syncToken": "1626282093087",
-  "creationTime": "2021-07-14T10:01:33.087737",
-  "prefixes": [{
+GCP_IP_RANGE = [
+  {
     "ipv4Prefix": "34.80.0.0/15",
     "service": "Google Cloud",
     "scope": "asia-east1"
@@ -1733,5 +1731,5 @@ GCP_IP_RANGE = {
     "ipv4Prefix": "35.219.128.0/18",
     "service": "Google Cloud",
     "scope": "us-west4"
-  }]
-}
+  }
+]

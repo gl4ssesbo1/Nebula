@@ -50,18 +50,39 @@ class DigitalOceanCredentials(db.Document):
 
 
 class AZURECredentials(db.Document):
-    azure_creds_id = db.StringField(required=True, unique=True)
+    azure_creds_name = db.StringField(required=True, unique=True)
     azure_user_id = db.StringField()
+    azure_client_id = db.StringField()
+    azure_client_secret = db.StringField()
+    azure_client_cert = db.StringField()
     azure_creds_scope = db.ListField()
     azure_user_principal_name = db.StringField()
+    azure_password = db.StringField()
+    azure_has_mfa = db.BooleanField()
     azure_access_token = db.StringField()
     azure_id_token = db.StringField()
     azure_refresh_token = db.StringField()
-    azure_expiration_date = db.DateTimeField(default=datetime.datetime.utcnow)
+    azure_expiration_date = db.DateTimeField()
     azure_expires_in = db.IntField()
     azure_tenant_id = db.StringField()
     azure_user_name = db.StringField()
     azure_resource = db.StringField()
+
+
+class AWSPolicies(db.Document):
+    aws_policy_name = db.StringField(required=True, unique=True)
+    aws_policy_arn = db.StringField(required=True, unique=True)
+    aws_policy_id = db.StringField(required=True, unique=True)
+    aws_policy_path = db.StringField()
+    aws_policy_scope = db.StringField()
+    aws_policy_default_version = db.StringField()
+    aws_policy_attachment_count = db.StringField()
+    aws_policy_permission_boundary_usage_count = db.StringField()
+    aws_policy_is_attachable = db.StringField()
+    aws_policy_create_date = db.DateTimeField()
+    aws_policy_update_date = db.DateTimeField()
+    aws_policy_documents = db.ListField()
+
 
 class AWSUsers(db.Document):
     aws_username = db.StringField(required=True, unique=True)
@@ -177,8 +198,8 @@ class DigitalOceanSpace(db.Document):
     digitalocean_s3_space_name = db.StringField(required=True, unique=True)
     digitalocean_s3_space_owner = db.StringField()
     digitalocean_s3_creation_date = db.DateTimeField()
-    digitalocean_s3_space_objects = db.DictField()
-    digitalocean_s3_deleted_objects = db.DictField()
+    digitalocean_s3_space_objects = db.ListField()
+    digitalocean_s3_deleted_objects = db.ListField()
     digitalocean_s3_space_policy = db.DictField()
     digitalocean_s3_space_policy_status = db.StringField()
     digitalocean_s3_space_acl = db.DictField()
@@ -197,15 +218,19 @@ class AzureServices(db.Document):
     azure_services_base_name = db.StringField(required=True, unique=True)
     azure_services_dns_list = db.DictField()
 
-"""class AzureADUsage(db.Document):
+class AzureADUsage(db.Document):
     domain_name = db.StringField(required=True, unique=True)
     usage = db.StringField()
     federation_brandname = db.StringField()
     cloud_instance_name = db.StringField()
     cloud_instance_issuer_uri = db.StringField()
     tenant_id = db.StringField()
-    auth_url = db.StringField()"""
+    auth_url = db.StringField()
 
+
+class UserAgent(db.Document):
+    user_agent_type = db.StringField()
+    user_agent = db.StringField()
 
 class Domains(db.Document):
     dn_name = db.StringField(required=True, unique=True)
@@ -270,3 +295,17 @@ class WebsocketParticle(db.Document):
     particle_aws_data = db.ListField()
     particle_meta_data = db.DictField()
 
+class S3C2Listener(db.Document):
+    listener_bucket_name = db.StringField(required=True, unique=True)
+    listener_command_file = db.StringField(required=True)
+    listener_output_file = db.StringField(required=True)
+    listener_access_key = db.StringField(required=True)
+    listener_secret_key = db.StringField(required=True)
+    listener_region = db.StringField(required=True)
+    listener_particle_access_key = db.StringField(required=True)
+    listener_particle_secret_key = db.StringField(required=True)
+    listener_kms_key_arn = db.StringField(required=True)
+
+class S3C2Particle(db.Document):
+    particle_key_name = db.StringField(required=True, unique=True)
+    particle_listener_name = db.StringField(required=True, unique=True)

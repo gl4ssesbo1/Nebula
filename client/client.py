@@ -1,6 +1,7 @@
+# !/usr/bin/python3
 import argparse
 import base64
-import getpass
+from getpass import getpass
 import json
 import os
 import platform
@@ -10,13 +11,14 @@ import sys
 from pydoc import pipepager
 import string
 
+import boto3
 import botocore
-# !/usr/bin/python3
 import botocore.session
 import prettytable
 import requests
 from colorama import init
-#import prompt_toolkit
+
+from core.RunAndPrintModule import RunModule, PrintAWSModule, PrintModule
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import NestedCompleter
@@ -29,16 +31,17 @@ from termcolor import colored
 import banner
 import commands.aws_get_user_id
 from commands.get_iam_users import list_aws_iam_users, get_aws_iam_user
+from commands.aws_s3_c2_client import getsendcommand
 from help import help
 
 init()
 
 parser = argparse.ArgumentParser(description='------ Nebula Client Options ------')
-parser.add_argument('-ah', '--apiHost', type=str, help='The API Server Host.', required=True)
+parser.add_argument('-ah', '--apiHost', type=str, help='The API Server Host.', default="127.0.0.1")
 parser.add_argument('-ap', '--apiPort', type=int, help='The API Server Port. (Default: 5000)', default=5000)
 parser.add_argument('-w', '--workspace', type=str, help='The Workspace to work with. (Required)', required=True)
 parser.add_argument('-u', '--username', type=str, help='The username to login as (Default \'cosmonaut\').')
-parser.add_argument('-p', '--password', type=str, help='The password for user \'cosmonaut\'. (Required)', required=True)
+parser.add_argument('-p', '--password', type=str, help='The password for user \'cosmonaut\'. (Required)')
 parser.add_argument("-b", action='store_true', help="Do not print banner")
 parser.add_argument("-c", "--config-file", help="Config File path")
 args = parser.parse_args()
@@ -52,7 +55,13 @@ if args.config_file is None:
     if username == None:
         username = 'cosmonaut'
 
-    password = args.password
+    if args.password is not None:
+        password = args.password
+    else:
+        password = getpass("Password: ")
+        while password == "":
+            password = getpass("Password: ")
+
     jwt_token = ""
     workspace = args.workspace
 else:
@@ -92,7 +101,6 @@ except:
 workspaces = []
 module = ''
 module_char = ''
-particle = ''
 module_options = {}
 
 show = [
@@ -108,7 +116,8 @@ show = [
     'reconnaissance',
     'stager',
     'misc',
-    "postexploitation"
+    "postexploitation",
+    "initialaccess"
 ]
 
 global all_sessions
@@ -266,7 +275,7 @@ comms = {
         "aws-credentials": None,
         "azure-credentials": None,
         "azuread-credentials": None,
-        "digitalocean-credentials": None,
+        "do-credentials": None,
         "gcp-credentials": None,
         "user-agent": {
             "linux":None,
@@ -356,6 +365,7 @@ digitalocean_sessions = json.loads(requests.get("{}/api/latest/digitaloceancrede
 
 for do_sess in digitalocean_sessions:
     comms['use']['credentials'][do_sess['digitalocean_profile_name']] = None
+    comms['remove']['credentials'][do_sess['digitalocean_profile_name']] = None
     if "digitalocean_token" in do_sess:
         all_sessions.append(
             {
@@ -380,6 +390,7 @@ for do_sess in digitalocean_sessions:
 
 for aws_sess in aws_sessions:
     comms['use']['credentials'][aws_sess['aws_profile_name']] = None
+    comms['remove']['credentials'][aws_sess['aws_profile_name']] = None
     if "aws_session_token" in aws_sess:
         all_sessions.append(
             {
@@ -411,12 +422,13 @@ for aws_sess in aws_sessions:
 for az_sess in azure_sessions:
     del az_sess['_id']
     for ass in all_sessions:
-        if az_sess["azure_creds_id"] == ass['profile']:
+        if az_sess["azure_creds_name"] == ass['profile']:
             pass
         else:
-            comms['use']['credentials'][az_sess['azure_creds_id']] = None
-            az_sess['profile'] = az_sess['azure_creds_id']
-            del(az_sess['azure_creds_id'])
+            comms['use']['credentials'][az_sess['azure_creds_name']] = None
+            comms['remove']['credentials'][az_sess['azure_creds_name']] = None
+            az_sess['profile'] = az_sess['azure_creds_name']
+            del(az_sess['azure_creds_name'])
             az_sess['provider'] = 'AZURE'
             all_sessions.append(az_sess)
             break
@@ -439,23 +451,25 @@ def update_all_sessions_azure():
     test = 1
     for az_sess in azure_sessions:
         for ass in all_sessions:
-            if az_sess['azure_creds_id'] == ass['profile']:
+            if az_sess['azure_creds_name'] == ass['profile']:
                 test = 0
                 if az_sess['azure_access_token'] == ass['azure_access_token']:
                     pass
                 else:
                     all_sessions.remove(ass)
-                    comms['use']['credentials'][az_sess['azure_creds_id']] = None
-                    az_sess['profile'] = az_sess['azure_creds_id']
-                    del (az_sess['azure_creds_id'])
+                    comms['use']['credentials'][az_sess['azure_creds_name']] = None
+                    comms['remove']['credentials'][az_sess['azure_creds_name']] = None
+                    az_sess['profile'] = az_sess['azure_creds_name']
+                    del (az_sess['azure_creds_name'])
                     az_sess['provider'] = 'AZURE'
 
                     all_sessions.append(az_sess)
                     continue
         if test == 1:
-            comms['use']['credentials'][az_sess['azure_creds_id']] = None
-            az_sess['profile'] = az_sess['azure_creds_id']
-            del (az_sess['azure_creds_id'])
+            comms['use']['credentials'][az_sess['azure_creds_name']] = None
+            comms['remove']['credentials'][az_sess['azure_creds_name']] = None
+            az_sess['profile'] = az_sess['azure_creds_name']
+            del (az_sess['azure_creds_name'])
             az_sess['provider'] = 'AZURE'
 
             all_sessions.append(az_sess)
@@ -477,10 +491,34 @@ def unique_sessions():
                     size -= 1
                     j -= 1
     all_sessions = all_sessions[:size]
+
+particles = []
+particle_command_key = ""
+particle_output_key = ""
+particle = ''
 def main(workspace, particle, module_char):
+    """
+    dbdata = {
+        "particle_key_name": "",
+        "particle_listener_name": bucket
+    }
+    
+    try:
+        s3c2data = S3C2Particle.objects.get(particle_listener_name=bucket)
+        s3c2data.modify(**dbdata)
+        s3c2data.save()
+
+    except mongoengine.DoesNotExist:
+        S3C2Particle(**dbdata).save()
+
+    except:
+        e = sys.exc_info()
+        return {"error": "Error from module: {}".format(str(e))}, 500
+    """
+
     terminal = 'Nebula'
-    curr_creds = {}
-    useragent = ""
+    curr_creds = None
+
     cred_prof = ""
     global username
     global web_proxies
@@ -530,6 +568,7 @@ def main(workspace, particle, module_char):
                     all_sessions.append(ass)
 
                     comms['use']['credentials'][botoprofile] = None
+                    comms['remove']['credentials'][botoprofile] = None
 
                     creds_response = requests.put("{}/api/latest/awscredentials".format(apihost),
                                                   headers={
@@ -577,6 +616,7 @@ def main(workspace, particle, module_char):
 
                                     all_sessions.append(ass)
                                     comms['use']['credentials'][botoprofile] = None
+                                    comms['remove']['credentials'][botoprofile] = None
 
                                     creds_response = requests.put("{}/api/latest/awscredentials".format(apihost),
                                                                         headers={
@@ -619,6 +659,7 @@ def main(workspace, particle, module_char):
 
                                 all_sessions.append(ass)
                                 comms['use']['credentials'][botoprofile] = None
+                                comms['remove']['credentials'][botoprofile] = None
                                 creds_response = requests.put("{}/api/latest/awscredentials".format(apihost),
                                                               headers={
                                                                   "Authorization": "Bearer {}".format(jwt_token)
@@ -656,6 +697,88 @@ def main(workspace, particle, module_char):
         command.strip()
 
         while True:
+            useragent = ""
+
+
+            listeners = requests.get("{}/api/latest/listeners".format(apihost),
+                                     headers={
+                                         "Authorization": "Bearer {}".format(jwt_token)
+                                     }
+                                     ).json()["Listeners"]
+
+            if listeners is not None:
+                for listener in listeners:
+                    del listener['_id']
+
+                    listenerargs = {
+                        "service_name": "s3",
+                        "region_name": listener['listener_region'],
+                        "aws_access_key_id": listener['listener_access_key'],
+                        "aws_secret_access_key": listener['listener_secret_key']
+                    }
+
+                    s3profile = boto3.client(
+                        **listenerargs
+                    )
+                    statuscode = requests.get(f"https://{listener['listener_bucket_name']}.s3.amazonaws.com").status_code
+                    if statuscode == 200 or statuscode == 403:
+                        try:
+                            response = s3profile.list_objects_v2(
+                                Bucket=listener['listener_bucket_name'],
+                                #SSECustomerKey=listener['listener_kms_key_arn']
+                            )
+
+                            if "Contents" in response:
+                                listenerobjects = response["Contents"]
+                                while response["IsTruncated"]:
+                                    listenerobjects.extend(response["Contents"])
+
+                                for lkey in listenerobjects:
+                                    if lkey['Key'][-1] == "/":
+                                        parcheck = 0
+                                        for particletemp in particles:
+                                            if lkey['Key'][:-1] == particletemp['particle_key_name']:
+                                                parcheck = 1
+                                        if parcheck == 0:
+                                            particles.append({
+                                                "particle_key_name": lkey['Key'][:-1],
+                                                "particle_listener_name": listener['listener_bucket_name']
+                                            })
+                                            comms['use']['particle'][lkey['Key'][:-1]] = None
+                        except:
+                            print(
+                                colored(
+                                    "[*] The bucket does not exist. Deleting listener", "red"
+                                )
+                            )
+                            dellistener = requests.delete("{}/api/latest/listeners".format(apihost),
+                                                     headers={
+                                                         "Authorization": "Bearer {}".format(jwt_token)
+                                                     },
+                                                     json={"listener_bucket_name": listener['listener_bucket_name']}
+                                                     )
+
+                            if not dellistener.status_code == 200:
+                                print(dellistener.json()['error'])
+                    else:
+                        print(
+                            colored(
+                                "[*] The bucket does not exist. Deleting listener", "red"
+                            )
+                        )
+                        dellistener = requests.delete("{}/api/latest/listeners".format(apihost),
+                                                      headers={
+                                                          "Authorization": "Bearer {}".format(jwt_token)
+                                                      },
+                                                      json={"listener_bucket_name": listener['listener_bucket_name']}
+                                                      )
+                        for listenerobj in listeners:
+                            if listenerobj['listener_bucket_name'] == listener['listener_bucket_name']:
+                                del listeners[listeners.index(listenerobj)]
+
+                        if not dellistener.status_code == 200:
+                            print(dellistener.json()['error'])
+
             n_tab = 0
             global output
 
@@ -666,6 +789,35 @@ def main(workspace, particle, module_char):
             if command == 'help':
                 help.help()
 
+            elif len(command.split(" ")) > 1 and command.split(" ")[0] == 'search':
+                searchstring = command.split(" ")[1]
+                column_width, row_width = os.get_terminal_size(0)
+                #table.max_width = column_width
+                table = prettytable.PrettyTable(max_table_width=column_width)
+                table.field_names = [colored('Modules', "green"), colored('Description', "green")]
+
+                rowcheck = 0
+                for m in modules_json:
+                    if searchstring in m['amodule']:
+                        if rowcheck == 0:
+                            rowcheck = 1
+                            color = "blue"
+                        elif rowcheck == 1:
+                            rowcheck = 0
+                            color = "yellow"
+                        table.add_row([
+                            colored(m['amodule'], color),
+                            colored(m['description'], color)
+                        ])
+                        table.add_row([
+                            "",
+                            ""
+                        ])
+
+                table.max_width = int(os.get_terminal_size().columns - 60)
+                table.align = 'l'
+                table.set_style(prettytable.DOUBLE_BORDER)
+                print(table)
             elif len(command.split(" ")) > 1 and command.split(" ")[0] == 'help':
                 help_comm = command.split(" ")[1]
                 help.specific_help(help_comm)
@@ -861,36 +1013,62 @@ def main(workspace, particle, module_char):
                                               formatters.TerminalFormatter())
                     print(colorful_json)
 
-                elif command.split(" ")[1] == 'listeners':
+                elif command.split(" ")[1] == 'particles':
+                    column_width, row_width = os.get_terminal_size(0)
+                    # table.max_width = column_width
                     table = prettytable.PrettyTable(max_table_width=column_width)
+                    table.field_names = [
+                        colored("Particle Name", "green"),
+                        colored("Bucket Name", "green")
+                    ]
 
-                    websocket_listeners = json.loads(requests.get("{}/api/latest/listeners".format(apihost),
-                                             headers={"Authorization": "Bearer {}".format(jwt_token)}).text)
-                    wskeys = []
-                    if len(websocket_listeners) > 0:
-                        for key in websocket_listeners[0]:
-                            wskeys.append(key)
-                    wsvalues = []
-                    onewsvalue = []
-                    try:
-                        del key
-                    except:
-                        pass
+                    for particlelist in particles:
+                        row = [
+                            particlelist['particle_key_name'],
+                            particlelist['particle_listener_name'],
+                        ]
 
-                    try:
-                        del value
-                    except:
-                        pass
+                        table.add_row(row)
 
-                    for websocket_listener in websocket_listeners:
-                        for key,value in websocket_listener.items():
-                            onewsvalue.append(value)
-                        wsvalues.append(onewsvalue)
-                    table.field_names = [colored('Modules', "green"), colored('Description', "green")]
-                    print(tabulate(onewsvalue, headers=['Name', 'Age']))
-                    del wsvalues
-                    del onewsvalue
+                    table.max_width = int(os.get_terminal_size().columns - 60)
+                    table.align = 'l'
+                    table.set_style(prettytable.DOUBLE_BORDER)
+                    print(table)
+                    del table
 
+                elif command.split(" ")[1] == 'listeners':
+                    if listeners is not None:
+                        column_width, row_width = os.get_terminal_size(0)
+                        # table.max_width = column_width
+                        table = prettytable.PrettyTable(max_table_width=column_width)
+                        table.field_names = [
+                            colored("Bucket Name", "green"),
+                            colored("Command File", "green"),
+                            colored("Output File", "green"),
+                            colored("KMS Key", "green"),
+
+                        ]
+
+                        for listener in listeners:
+                            row = [
+                                listener['listener_bucket_name'],
+                                listener['listener_command_file'],
+                                listener['listener_output_file'],
+                                listener['listener_kms_key_arn']
+                            ]
+
+                            table.add_row(row)
+
+                        table.max_width = int(os.get_terminal_size().columns - 60)
+                        table.align = 'l'
+                        table.set_style(prettytable.DOUBLE_BORDER)
+                        print(table)
+                    else:
+                        print(
+                            colored(
+                                "[*] No listeners configured", "red"
+                            )
+                        )
                 elif command.split(" ")[1] == 'web-proxies':
                     if len(web_proxies) > 0:
                         print(colored("-------------------------------------",
@@ -917,7 +1095,11 @@ def main(workspace, particle, module_char):
                     print(colored(f"[*] User Agent Set to: {useragent}", "green"))
 
                 elif command.split(" ")[1] == 'current-creds':
-                    if len(curr_creds) > 0:
+                    if curr_creds == None:
+                        print(
+                            colored("[*] No current creds set", "red")
+                        )
+                    elif len(curr_creds) > 0:
                         print(colored("-------------------------------------",
                                       "yellow"))
 
@@ -1070,7 +1252,7 @@ def main(workspace, particle, module_char):
                     print(colored("[*] The correct form should be: reset-password <username>", "red"))
 
                 else:
-                    user_passwod = getpass.getpass("Password: ").replace("\n", "").strip()
+                    user_passwod = getpass("Password: ").replace("\n", "").strip()
                     if user_passwod == "":
                         print(colored("[*] Password can't be empty", "red"))
 
@@ -1149,6 +1331,14 @@ def main(workspace, particle, module_char):
                     print(
                         colored("[*] Exact module format is <type>/<name>. Eg: use module enum/s3_list_buckets", "red"))
 
+                elif command.split(" ")[1] == 'particle':
+                    if len(command.split(" ")) < 3:
+                        print(
+                            colored("[*] Also provide the profile name. Eg: use credentials <profilename>",
+                                    "red"))
+                    else:
+                        particle = command.split(" ")[2]
+
                 elif command.split(" ")[1] == 'credentials':
                     if len(command.split(" ")) < 3:
                         print(
@@ -1156,13 +1346,19 @@ def main(workspace, particle, module_char):
                                     "red"))
                     else:
                         for cred in all_sessions:
+                            c = 0
                             if command.split(" ")[2] == cred['profile']:
                                 cred_prof = command.split(" ")[2]
                                 curr_creds = cred
                                 print(colored("[*] Currect credential profile set to ", "green") + colored(
                                     "'{}'.".format(cred_prof), "blue") + colored("Use ", "green") + colored(
                                     "'show current-creds' ", "blue") + colored("to check them.", "green"))
+                                c = 1
                                 break
+                        if c == 0:
+                            print(
+                                colored(f"[*] Credential \"{command.split(' ')[2]}\" does not exist. Please choose a valid one",
+                                        "red"))
 
                 elif command.split(" ")[1] == 'module':
                     if not "/" in command.split(" ")[2]:
@@ -1226,6 +1422,8 @@ def main(workspace, particle, module_char):
                                                                    colored("Description", "yellow"),
                                                                    colored('The service that will be used to run the module. It cannot be changed.', "green")))
                     for key,value in module_options['module_options'].items():
+                        if "hidden" in value and value['hidden'] == "true":
+                            continue
                         if key == 'SERVICE':
                             pass
 
@@ -1306,44 +1504,161 @@ def main(workspace, particle, module_char):
 
                     for key, value in module_options['module_options'].items():
                         if 'iswordlist' in value and value['iswordlist'] and not value['value'] == "":
-                            wordlistfile = open(value['value'])
-                            wordlistarray = []
-                            for line in wordlistfile.readlines():
-                                wordlistarray.append(line)
+                            if not os.path.exists(value['value']):
+                                print(colored("[*] File does not exist. Check the path or name.", "red"))
+                                count += 1
+                            else:
+                                wordlistfile = open(value['value'])
+                                wordlistarray = []
+                                for line in wordlistfile.readlines():
+                                    wordlistarray.append(line.replace("\n", "").strip())
 
-                            value['value'] = wordlistarray
+                                value['wordlistvalue'] = wordlistarray
+
+                                del (wordlistfile)
+                                del (wordlistarray)
+
+                        if 'isfile' in value and value['isfile'] and not value['value'] == "":
+                            if not os.path.exists(value['value']):
+                                print(colored("[*] File does not exist. Check the path or name.", "red"))
+                                count += 1
+                            else:
+                                fileobj = open(value['value'])
+                                fileContent =  fileobj.read().encode('ascii')
+                                value['filevalue'] = base64.b64encode(fileContent)
+
+                                del (fileContent)
+                                del (fileobj)
+
 
                     if count == 0:
                         if (module_char.split("_")[0]).split("/")[1] == 'aws':
-                            for AWSregion in regions:
-                                if bool(module_options['needs_creds']):
-                                    module_output = {}
+                            if module_options['needs_creds']:
+                                if curr_creds is None:
+                                    print(
+                                        colored(
+                                            "[*] Please select a credential", "red", attrs=['bold']
+                                        )
+                                    )
+                                elif curr_creds['provider'] != "AWS":
+                                    print(
+                                        colored(
+                                            "[*] Please select AWS credentials for this module", "red", attrs=['bold']
+                                        )
+                                    )
+                                else:
+                                    if len(regions) == 0:
+                                        if curr_creds['region'] != "":
+                                            regions = [curr_creds['region']]
+                                    else:
+                                        if len(regions) == 0:
+                                            print(
+                                                colored("[*] Please select a region, or all", "yellow")
+                                            )
+                                            i = 0
+                                            for printRegion in AWS_REGIONS:
+                                                print(
+                                                    colored(f"\t[{i}] {printRegion}", "yellow")
+                                                )
+                                                i += 1
+
+                                            regionSelect = input(
+                                                colored(f"Enter numbers 0-{i-1}: ", "yellow")
+                                            )
+                                            while True:
+                                                try:
+                                                    if int(regionSelect) >= 0 and int(regionSelect) < i:
+                                                        regions.append(AWS_REGIONS[i])
+                                                        break
+                                                    elif int(regionSelect) == i:
+                                                        regions = AWS_REGIONS
+                                                    else:
+                                                        regionSelect = input(
+                                                            colored(f"Enter numbers 0-{i-1}: ", "yellow")
+                                                        )
+                                                except ValueError:
+                                                    regionSelect = input(
+                                                        colored(f"Enter numbers 0-{i-1}: ", "yellow")
+                                                    )
+
+                                module_output = {}
+                                for AWSregion in regions:
                                     if len(regions) == 0:
                                         print(colored('[*] Select one or several (split by comma) regions using "set default-regions <region>" or use All with ""set default-regions All""', "red"))
                                     else:
                                         print(colored(f'[*] Running module "{module_char}" on region "{AWSregion}".', "yellow"))
-                                        from core.RunAndPrintModule import RunModule
 
                                         for iamuser in all_sessions:
                                             if iamuser['profile'] == cred_prof:
                                                 iamuser['region'] = AWSregion
-                                                print(web_proxies)
+
                                                 module_output[AWSregion] = RunModule(module_char, module_options, cred_prof, useragent, workspace, web_proxies, jwt_token, apihost, username, AWSregion)
-                                                print(module_output)
-                                        from core.RunAndPrintModule import PrintAWSModule
+
+
+                                                if module_char.split("/")[0] == "stager" or module_char.split("/")[0] == "listeners":
+                                                    if not "error" in module_output[AWSregion]:
+                                                        if not os.path.exists(".stagers"):
+                                                            os.makedirs(".stagers")
+
+                                                        try:
+                                                            with open(
+                                                                    f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
+                                                                    'w') as stagerfile:
+                                                                stagerfile.write(base64.b64decode(
+                                                                    module_output[AWSregion]['Code']).decode())
+                                                                stagerfile.close()
+                                                            del (module_output[AWSregion]['Code'])
+                                                            module_output[AWSregion]['OutPutFile'] = f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
+                                                            #PrintAWSModule(module_output)
+                                                        except FileNotFoundError:
+                                                            print(
+                                                                colored(
+                                                                    "Please, only put the file name that will be stored on directory '.stagers'",
+                                                                    "red")
+                                                            )
+                                                    #else:
+                                                    #    PrintAWSModule(module_output)
+
+                                                #else:
+                                                #    PrintAWSModule(module_output)
+
+
+                                                #else:
+                                PrintAWSModule(module_output)
+
+                                                #PrintAWSModule(module_output)
+
+
+                            else:
+                                module_output = RunModule(module_char, module_options, cred_prof, useragent, workspace, web_proxies,
+                                          jwt_token, apihost, username, None)
+
+                                if module_char.split("/")[0] == "stager" or module_char.split("/")[0] == "listeners":
+                                    if not "error" in module_output:
+                                        if not os.path.exists(".stagers"):
+                                            os.makedirs(".stagers")
+
+                                        try:
+                                            with open(f".stagers/{module_output['ModuleName']['OutPutFile']}", 'w') as stagerfile:
+                                                stagerfile.write(base64.b64decode(module_output["ModuleName"]['Code']).decode())
+                                                stagerfile.close()
+                                            del (module_output["ModuleName"]['Code'])
+                                            module_output["ModuleName"]['OutPutFile'] = f".stagers/{module_output['ModuleName']['OutPutFile']}"
+                                            PrintAWSModule(module_output)
+                                        except FileNotFoundError:
+                                            print(
+                                                colored(
+                                                    "Please, only put the file name that will be stored on directory '.stagers'",
+                                                    "red")
+                                            )
+                                    else:
                                         PrintAWSModule(module_output)
+
                                 else:
-                                    module_output = RunModule(module_char, module_options, cred_prof, useragent, workspace, web_proxies,
-                                              jwt_token, apihost, username, AWSregion)
-                                    from core.RunAndPrintModule import PrintModule
                                     PrintAWSModule(module_output)
                         else:
-                            from core.RunAndPrintModule import RunModule
-                            from core.RunAndPrintModule import PrintModule
-
                             module_output = RunModule(module_char, module_options, cred_prof, useragent, workspace, web_proxies, jwt_token, apihost, username, "")
-
-                            PrintModule(module_output)
+                            PrintAWSModule(module_output)
 
             elif command.split(" ")[0] == 'get_aws_iam_user':
                 if len(command.split(" ")) < 2:
@@ -1475,6 +1790,51 @@ def main(workspace, particle, module_char):
                         pipepager(output, cmd='less -FR')
                         output = """""
 
+            elif command.split(" ")[0] == 'shell':
+                if particle == "":
+                    print(colored("[*] Please select a particle using: 'use particle <particle name>'", "red"))
+                else:
+                    shellchekc = 0
+                    for particlename in particles:
+                        if particlename['particle_key_name'] == particle:
+                            for listenerlist in listeners:
+                                if listenerlist['listener_bucket_name'] == particlename['particle_listener_name']:
+                                    listenerargs = {
+                                        "service_name": "s3",
+                                        "region_name": listenerlist['listener_region'],
+                                        "aws_access_key_id": listenerlist['listener_access_key'],
+                                        "aws_secret_access_key": listenerlist['listener_secret_key']
+                                    }
+                                    try:
+                                        s3profile = boto3.client(
+                                            **listenerargs
+                                        )
+                                        getsendcommand(
+                                            bucket_name=listenerlist['listener_bucket_name'],
+                                            particle_name=particle,
+                                            command_key=listenerlist['listener_command_file'],
+                                            output_key=listenerlist['listener_output_file'],
+                                            command=command.replace("shell ", "").strip(),
+                                            s3Client=s3profile,
+                                            kmskeyid=listenerlist['listener_kms_key_arn'],
+                                            particles=particles
+                                        )
+                                        del listenerlist
+                                        del listenerargs
+                                        shellchekc = 1
+                                    except:
+                                        shellchekc = 1
+                                        print(
+                                            colored(
+                                                f"[*] Error connecting to client: {str(sys.exc_info())}", "red"
+                                            )
+                                        )
+                    if shellchekc == 0:
+                        print(colored("[*] Particle does not exist", "red"))
+
+
+
+
             elif command.split(" ")[0] == 'remove':
                 if command.split(" ")[1] == 'user':
                     if len(command.split(" ")) < 3:
@@ -1495,13 +1855,75 @@ def main(workspace, particle, module_char):
                         else:
                             print(colored("[*] {}".format(user_created['error']), "red"))
 
+                elif command.split(" ")[1] == 'credentials':
+                    if len(command.split(" ")) < 3:
+                        print(colored("[*] Usage: 'remove credentials <username>'", "red"))
+
+                    else:
+                        for credential in all_sessions:
+                            if credential['profile'] == command.split(" ")[2]:
+                                if credential['provider'] == "AWS":
+                                    cred_json = {
+                                        "aws_profile_name": command.split(" ")[2]
+                                    }
+
+                                    cred_deleted = json.loads(requests.delete("{}/api/latest/awscredentials".format(apihost),
+                                                                            json=cred_json,
+                                                                            headers={"Authorization": "Bearer {}".format(jwt_token)}
+                                                                        ).text)
+
+                                    if not "error" in cred_deleted:
+                                        print(colored("[*] Credential '{}' Deleted.".format(command.split(" ")[2]), "green"))
+                                        del (all_sessions[all_sessions.index(credential)])
+                                        del(comms['use']['credentials'][command.split(" ")[2]])
+                                        del(comms['remove']['credentials'][command.split(" ")[2]])
+                                    else:
+                                        print(colored("[*] {}".format(cred_deleted['error']), "red"))
+
+                                if credential['provider'] == "AZURE":
+                                    cred_json = {
+                                        "azurecredentials_name": command.split(" ")[2]
+                                    }
+
+                                    cred_deleted = json.loads(requests.delete("{}/api/latest/azurecredentials".format(apihost),
+                                                                            json=cred_json,
+                                                                            headers={"Authorization": "Bearer {}".format(jwt_token)}
+                                                                        ).text)
+
+                                    if not "error" in cred_deleted:
+                                        print(colored("[*] Credential '{}' Deleted.".format(command.split(" ")[2]), "green"))
+                                        del (all_sessions[all_sessions.index(credential)])
+                                        del (comms['use']['credentials'][command.split(" ")[2]])
+                                        del (comms['remove']['credentials'][command.split(" ")[2]])
+                                    else:
+                                        print(colored("[*] {}".format(cred_deleted['error']), "red"))
+
+                                if credential['provider'] == "DIGITALOCEAN":
+                                    cred_json = {
+                                        "digitalocean_profile_name": command.split(" ")[2]
+                                    }
+
+                                    cred_deleted = json.loads(requests.delete("{}/api/latest/digitaloceancredentials".format(apihost),
+                                                                            json=cred_json,
+                                                                            headers={"Authorization": "Bearer {}".format(jwt_token)}
+                                                                        ).text)
+
+                                    if not "error" in cred_deleted:
+                                        print(colored("[*] Credential '{}' Deleted.".format(command.split(" ")[2]), "green"))
+                                        del (all_sessions[all_sessions.index(credential)])
+                                        del (comms['use']['credentials'][command.split(" ")[2]])
+                                        del (comms['remove']['credentials'][command.split(" ")[2]])
+                                    else:
+                                        print(colored("[*] {}".format(cred_deleted['error']), "red"))
+
+
             elif command.split(" ")[0] == 'create':
                 if command.split(" ")[1] == 'user':
                     if len(command.split(" ")) < 3:
                         print(colored("[*] Usage: 'create user <username>'", "red"))
 
                     else:
-                        user_passwod = getpass.getpass("Password: ").replace("\n", "").strip()
+                        user_passwod = getpass("Password: ").replace("\n", "").strip()
                         if user_passwod == "":
                             print(colored("[*] Password can't be empty", "red"))
 
@@ -1567,6 +1989,9 @@ def main(workspace, particle, module_char):
                     elif command.split(" ")[2] == 'custom':
                         useragent = input("User-Agent>>> ")
                     print(colored(f"[*] User Agent Set to: {useragent}", "green"))
+                    with open(f"{sys.prefix}/lib/python3.10/site-packages/botocore/.user-agent", "w") as uafile:
+                        uafile.write(useragent)
+                        uafile.close()
 
                 elif command.split(" ")[1] == 'web-proxy-certificate':
                     if len(command.split(" ")) < 4:
@@ -1627,10 +2052,97 @@ def main(workspace, particle, module_char):
                         except:
                             print(f"[*] {colored(str(sys.exc_info()), 'red')}")
 
-                elif command.split(" ")[1] == 'digitalocean-credentials':
+                elif command.split(" ")[1] == 'azure-credentials':
+                    if len(command.split(" ")) < 3:
+                        print(colored("[*] Usage: 'set credentials <username>'", "red"))
+                    else:
+                        yon = input("Are you putting an Access Token? [y/N] ")
+                        if yon == "y" or yon == "Y":
+                            yon = 'N'
+                            access_token = input("Access Token: ")
+                            refresh_token = input("Refresh Token: ")
+                            tenant_id = input("Tenant ID: ")
+
+                            cred_json = {
+                                "azure_creds_name": command.split(" ")[2],
+                                "azure_access_token": access_token,
+                                "azure_refresh_token": refresh_token,
+                                "azure_tenant_id": tenant_id
+                            }
+
+                        yon = input("Are credential Service Principal Credentials? [y/N] ")
+                        if yon == "y" or yon == "Y":
+                            yon = 'N'
+                            tenant_id = input("Tenant ID: ")
+                            client_id = input("Client ID: ")
+                            yon = input("Are you using Client Secret? [y/N] ")
+                            if yon == "y" or yon == "Y":
+                                client_secret = input("Client Secret: ")
+                                cred_json = {
+                                    "azure_creds_name": command.split(" ")[2],
+                                    "azure_client_id": client_id,
+                                    "azure_client_secret": client_secret,
+                                    "azure_tenant_id": tenant_id
+
+                                }
+                            else:
+                                client_cert = input("Client Certificate")
+                                cred_json = {
+                                    "azure_creds_name": command.split(" ")[2],
+                                    "azure_client_id": client_id,
+                                    "azure_client_cert": client_cert,
+                                    "azure_tenant_id": tenant_id
+                                }
+
+                        else:
+                            email = input("User Email: ")
+                            password = input("User Password: ")
+                            tenant_id = input("Tenant ID: ")
+
+                            cred_json = {
+                                "azure_creds_name": command.split(" ")[2],
+                                "azure_tenant_id": tenant_id,
+                                "azure_user_principal_name": email,
+                                "azure_password": password
+                            }
+
+                            cred_created = json.loads(requests.put("{}/api/latest/azurecredentials".format(apihost),
+                                                                      json=cred_json,
+                                                                      headers={"Authorization": "Bearer {}".format(jwt_token)}
+                                                                      ).text)
+
+                            if not "error" in cred_created:
+                                print(colored("[*] Credential '{}' Created.".format(command.split(" ")[2]), "green"))
+                                curr_creds = {
+                                    'provider': "AZURE",
+                                    'profile': "",
+                                    'access_key_id': "",
+                                    'secret_key': "",
+                                    'region': ""
+                                }
+                                curr_creds['provider'] = 'DIGITALOCEAN'
+                                curr_creds['profile'] = set_digitalocean_creds_body["digitalocean_profile_name"]
+                                curr_creds['access_key_id'] = set_digitalocean_creds_body["digitalocean_access_key"]
+                                curr_creds['secret_key'] = set_digitalocean_creds_body["digitalocean_secret_key"]
+                                curr_creds['region'] = set_digitalocean_creds_body["digitalocean_region"]
+
+                                print(colored("[*] Credentials set. Use ", "green") + colored("'show credentials' ",
+                                                                                              "blue") + colored(
+                                    "to check them.", "green"))
+
+                                print(colored("[*] Currect credential profile set to ", "green") + colored(
+                                    "'{}'.".format(cred_prof), "blue") + colored("Use ", "green") + colored(
+                                    "'show current-creds' ", "blue") + colored("to check them.", "green"))
+
+
+                            else:
+                                print(colored("[*] {}".format(cred_created['error']), "red"))
+
+                        del cred_json
+                elif command.split(" ")[1] == 'do-credentials':
                     set_digitalocean_creds_body = {}
                     if len(command.split(" ")) == 2:
-                        print(colored("[*] The right command is: set aws-credentials <profile name>", "red"))
+                        print(colored("[*] The right command is: set do-credentials <profile name>", "red"))
                     else:
                         yon = input("Are credential Space S3 Credentials? [y/N] ")
                         print(yon)
@@ -1678,6 +2190,13 @@ def main(workspace, particle, module_char):
                                     print(colored("[*] {}".format(set_creds['error']), "red"))
 
                                 else:
+                                    curr_creds = {
+                                        'provider': "",
+                                        'profile': "",
+                                        'access_key_id': "",
+                                        'secret_key': "",
+                                        'region': ""
+                                    }
                                     curr_creds['provider'] = 'DIGITALOCEAN'
                                     curr_creds['profile'] = set_digitalocean_creds_body["digitalocean_profile_name"]
                                     curr_creds['access_key_id'] = set_digitalocean_creds_body["digitalocean_access_key"]
@@ -1713,6 +2232,14 @@ def main(workspace, particle, module_char):
                                 sess_test['provider'] = 'DIGITALOCEAN'
                                 all_sessions.append(sess_test)
 
+                                curr_creds = {
+                                    'provider': "",
+                                    'profile': "",
+                                    'access_key_id': "",
+                                    'secret_key': "",
+                                    'region': ""
+                                }
+
                                 curr_creds['provider'] = 'DIGITALOCEAN'
                                 curr_creds['profile'] = set_digitalocean_creds_body["digitalocean_profile_name"]
                                 curr_creds['digitalocean_token'] = set_digitalocean_creds_body["digitalocean_token"]
@@ -1727,14 +2254,20 @@ def main(workspace, particle, module_char):
                 elif command.split(" ")[1] == 'aws-region':
                     if len(command.split(" ")) < 3:
                         print(colored(
-                            "[*] The command is: set aws-region <region-name>", "red"
+                            "[*] The command is: set aws-region <region-name> or set aws-region all", "red"
                         ))
                     else:
-                        if curr_creds['provider'] == "AWS":
-                            curr_creds['region'] = command.split(" ")[2]
+                        regions = [command.split(" ")[2]]
+
+                        if command.split(" ")[2] in AWS_REGIONS:
+                            regions = [command.split(" ")[2]]
+
+                        elif command.split(" ")[2] == "all":
+                            regions = AWS_REGIONS
+
                         else:
                             print(colored(
-                                "[*] The credential is not an AWS One", "red"
+                                "[*] The command is: set aws-region <region-name> or set aws-region all", "red"
                             ))
 
                 elif command.split(" ")[1] == 'aws-credentials':
@@ -1763,6 +2296,7 @@ def main(workspace, particle, module_char):
                             set_aws_creds_body["aws_session_token"] = sess_token
 
                         comms['use']['credentials'][command.split(" ")[2]] = None
+                        comms['remove']['credentials'][command.split(" ")[2]] = None
 
                         if sess_test['profile'] == "" and sess_test['access_key_id'] == "" and sess_test['secret_key'] == "" and sess_test['region'] == "":
                             pass
@@ -1787,6 +2321,13 @@ def main(workspace, particle, module_char):
                                     print(colored("[*] {}".format(set_creds['error']), "red"))
 
                                 else:
+                                    curr_creds = {
+                                        'provider': "",
+                                        'profile': "",
+                                        'access_key_id': "",
+                                        'secret_key': "",
+                                        'region': ""
+                                    }
                                     curr_creds['profile'] = set_aws_creds_body["aws_profile_name"]
                                     curr_creds['access_key_id'] = set_aws_creds_body["aws_access_key"]
                                     curr_creds['secret_key'] = set_aws_creds_body["aws_secret_key"]

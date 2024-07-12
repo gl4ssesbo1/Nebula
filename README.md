@@ -1,5 +1,5 @@
 # Nebula
-<img src="./core/img/logo.png" alt="logo" width="200" align="center"/>
+<img src="./img/nebulalogo.png" alt="logo" width="200" align="center"/>
 
 Nebula is a Cloud and (hopefully) DevOps Penetration Testing framework. 
 It is build with modules for each provider and each functionality. As of April 2021, it only covers AWS, but is currently an ongoing project and hopefully will continue to grow to test GCP, Azure, Kubernetes, Docker, or automation engines like Ansible, Terraform, Chef, etc.
@@ -11,7 +11,7 @@ I started writing it while I was reading "Hands-On AWS Penetration Testing with 
 **Currently covers:**
 - AWS, Azure (Graph and Management API) and DigitalOcean enumeration, exploitation and post-exploitation
 
-**There are currently 72 modules covering:**
+**There are currently 55 modules covering:**
 - Reconnaissance
 - Enumeration
 - Exploit
@@ -25,25 +25,24 @@ I started writing it while I was reading "Hands-On AWS Penetration Testing with 
 ## Installation
 ### Server
 Nebula is coded in python3.11. It uses boto3 library to access AWS. 
-To install, create a venv and install python 3.11+ and install libraries required from *requirements.txt*
-
+To install, run ```install.sh``` script, which will get the mongo image, create teamserver image and install client's libraries on a venv (docker does not work for client due to TTY issues)
 ```
-python3 -m venv ./venv
-source venv/bin/activate
-python3 -m pip install -r requirements.txt 
-```
-
-Then install session-manager-plugin. This is needed for SSM modules:
-```
-curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
-dpkg -i session-manager-plugin.deb
-```
-On windows devices, since less is not installed, I got one from **https://github.com/jftuga/less-Windows**
-The prebuilt binary is saved on directory less_binary. Just add that directory to the PATH environment variable and it will be ok.
-
-Then just run **teamserver** 
-```
-python3 teamserver.py -dn <workspace name> -p <password>
+$ ./install.sh
+ ---------------------------------------------------------
+               Installing Nebula
+ ---------------------------------------------------------
+ [*] Pulling mongo image
+Using default tag: latest
+latest: Pulling from library/mongo
+Digest: sha256:bd38dc3d2895c7434b9b75c86525642efe3d65e4c6aadfe397486d7cc89406f0
+Status: Image is up to date for mongo:latest
+docker.io/library/mongo:latest
+ [*] Pulled Docker Image
+ ---------------------------------------------------------
+ [*] Building Nebula Teamserver
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
 ```
 
 ### Client
@@ -59,75 +58,76 @@ nebula -w <database name> --password <password> -ah <server host>
 ## Usage
 ```
 
-                                              ...........
-                                      ...''''''''''''''...
-                                   ..'''''...........''''''............
-                                 ..''''..             ...'''''''''''''''...
-                               ..'''..                   ..............'''''..
-                              .''''.          .;loddool:'.              ..''''..
-                             ..'''.          .;clokXWWMWNKkl;.             .''''.
-                             .'''.      .',,'..    ';dNMMMMMWKko;.           .'''..
-                            .''''.   .cx0NWWNX0koc;,'cKMMMMMMMMMWXOo:.        .''''....
-                            .'''.   .',',:oONMMMMMWNNNWMMMMMMWKk0WMMWXx'       .''''''''...
-                           ..'''.          .,dXMMMMMMMMMMMMMNOl',oONWWd.        .......'''''..
-                        ...'''''..   :o'      cXMMMMMMMMMMMMMWNXKKXNWWKxc,.             ..''''..
-                      ..''''....     oNKl'. ..oXMMMMMMMMMMMMMMMMMMMMMMMMMNKOdc,..         ..''''.
-                    ..''''..         ,OWWX0O0XWMMMMMMMMMMMMMMMMMMWWWWMMMMMMMMMWXOxooxk:.    ..'''.
- ..'''''''''''''''''''''.             .l0NMMMMMMMMMMMMMMMMMMMMN0dc;;;coONMMMMMMMMMMMMMK:     ..'''.
- .......................                .,dXMMMMMMMMMMMMMMMMMMWX0ko:.  .;OWMMMMMMMMMMMWx.     .'''.
-                                          .oWMMMMMMMMMMMMMMWNXXXWMMWKd'  .:lccclodOXWMWd.      .'''.
-     ,lc'    ..................   ',.    .,OWMMMMMMMMMMMMXx:'...:0WMMMKl.      .. .'oKO,       .'''.
-    ,0MWx.  .''''''''''''''''''.  ;OKOOOO0NWMMMMMMMMMMMMNl.     .cdoox0XOl;'....... ...        .'''.
-    .;ol'    ...................   ;kXWMMMMMMMMMMMMMMMMMWx.          .:0WNKkdo:.  ...         .'''.
-   ....................              .:ldxk0XWMMMMMMMMMMMW0o'        .';;,.         ....     ..'''.
- ;k00000000000000000000x'                  ..;lkXWMMMMMMMMMWXkc.                            ..'''.
-.lXWWWWWWWWWWWWWWWWWWMMWKl.                     ;OWMMMMMMMMMMMWKx:.                       ..''''.
-  .,,,,,,,,,,,,,,,,,:kNMMW0o,.                  'kWMMMMMMMMMMMMMMWKd,.                  ..''''..
-                     .:ONMMMNKkdlc:::::::::ccldkKWMMMMMMMMMMMMMMMMMMNOl'    ...........'''''..
-                       .,oOXWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWXkc....''''''''''...
-                          .':ldkO0000000000000000000000000000000000000000Ox:.  ........
-                                 ...........................................
+                                                      ...........
+                                              ...''''''''''''''...
+                                           ..'''''...........''''''............
+                                         ..''''..             ...'''''''''''''''...
+                                       ..'''..                   ..............'''''..
+                                      .''''.          .;loddool:'.              ..''''..
+                                     ..'''.          .;clokXWWMWNKkl;.             .''''.
+                                     .'''.      .',,'..    ';dNMMMMMWKko;.           .'''..
+                                    .''''.   .cx0NWWNX0koc;,'cKMMMMMMMMMWXOo:.        .''''....
+                                    .'''.   .',',:oONMMMMMWNNNWMMMMMMWKk0WMMWXx'       .''''''''...
+                                   ..'''.          .,dXMMMMMMMMMMMMMNOl',oONWWd.        .......'''''..
+                                ...'''''..   :o'      cXMMMMMMMMMMMMMWNXKKXNWWKxc,.             ..''''..
+                              ..''''....     oNKl'. ..oXMMMMMMMMMMMMMMMMMMMMMMMMMNKOdc,..         ..''''.
+                            ..''''..         ,OWWX0O0XWMMMMMMMMMMMMMMMMMMWWWWMMMMMMMMMWXOxooxk:.    ..'''.
+         ..'''''''''''''''''''''.             .l0NMMMMMMMMMMMMMMMMMMMMN0dc;;;coONMMMMMMMMMMMMMK:     ..'''.
+         .......................                .,dXMMMMMMMMMMMMMMMMMMWX0ko:.  .;OWMMMMMMMMMMMWx.     .'''.
+                                                  .oWMMMMMMMMMMMMMMWNXXXWMMWKd'  .:lccclodOXWMWd.      .'''.
+             ,lc'    ..................   ',.    .,OWMMMMMMMMMMMMXx:'...:0WMMMKl.      .. .'oKO,       .'''.
+            ,0MWx.  .''''''''''''''''''.  ;OKOOOO0NWMMMMMMMMMMMMNl.     .cdoox0XOl;'....... ...        .'''.
+            .;ol'    ...................   ;kXWMMMMMMMMMMMMMMMMMWx.          .:0WNKkdo:.  ...         .'''.
+           ....................              .:ldxk0XWMMMMMMMMMMMW0o'        .';;,.         ....     ..'''.
+         ;k00000000000000000000x'                  ..;lkXWMMMMMMMMMWXkc.                            ..'''.
+        .lXWWWWWWWWWWWWWWWWWWMMWKl.                     ;OWMMMMMMMMMMMWKx:.                       ..''''.
+          .,,,,,,,,,,,,,,,,,:kNMMW0o,.                  'kWMMMMMMMMMMMMMMWKd,.                  ..''''..
+                             .:ONMMMNKkdlc:::::::::ccldkKWMMMMMMMMMMMMMMMMMMNOl'    ...........'''''..
+                               .,oOXWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWXkc....''''''''''...
+                                  .':ldkO0000000000000000000000000000000000000000Ox:.  ........
+                                         ...........................................
 
 
-                           _        _______  ______            _        _______
-                          ( (    /|(  ____ \(  ___ \ |\     /|( \      (  ___  )
-                          |  \  ( || (    \/| (   ) )| )   ( || (      | (   ) |
-                          |   \ | || (__    | (__/ / | |   | || |      | (___) |
-                          | (\ \) ||  __)   |  __ (  | |   | || |      |  ___  |
-                          | | \   || (      | (  \ \ | |   | || |      | (   ) |
-                          | )  \  || (____/\| )___) )| (___) || (____/\| )   ( |
-                          |/    )_)(_______/|/ \___/ (_______)(_______/|/     \|
-                                                Because Clouds are so AWSome
+                                   _        _______  ______            _        _______
+                                  ( (    /|(  ____ \(  ___ \ |\     /|( \      (  ___  )
+                                  |  \  ( || (    \/| (   ) )| )   ( || (      | (   ) |
+                                  |   \ | || (__    | (__/ / | |   | || |      | (___) |
+                                  | (\ \) ||  __)   |  __ (  | |   | || |      |  ___  |
+                                  | | \   || (      | (  \ \ | |   | || |      | (   ) |
+                                  | )  \  || (____/\| )___) )| (___) || (____/\| )   ( |
+                                  |/    )_)(_______/|/ \___/ (_______)(_______/|/     \|
+                                                        Because Clouds are so AWSome
 
-                        -------------------------------------------------------------
-                                                        Created by: gl4ssesbo1
-                        -------------------------------------------------------------
-                        87 aws          0 gcp           1 azure         0 office365
-                        0 docker        0 kubernetes    3 misc          2 azuread
-                        -------------------------------------------------------------
-                        93 modules      3 cleanup               0 detection
-                        62 enum         11 exploit              1 persistence
-                        1 listeners     0 lateral movement      2 detection bypass
-                        0 privesc       9 reconnaissance        1 stager
-                        3 misc
+                                -------------------------------------------------------------
+                                                                Created by: gl4ssesbo1
+                                -------------------------------------------------------------
+                                48 aws          1 gcp           7 azure         0 office365
+                                0 docker        0 kubernetes    6 misc          4 azuread
+                                4 digitalocean
+                                -------------------------------------------------------------
+                                81 modules      6 cleanup               0 detection
+                                19 enum         22 exploit              2 persistence
+                                2 listeners     0 lateral movement      7 detection bypass
+                                0 privesc       16 reconnaissance       2 stager        1 postexploitation
+                                4 misc
 
-                        Remember:
-                        -------------------------------------------------------------
-                        1) Only use this  tool  if  you  have  permissions  from  the
-                        infrastructure's owner. Don't be a dick. Don't  choose  jail.
-                        And if you have some scruples, don't hack others just because
-                        you can (or cannot, in which case that's why you  chose  this
-                        tool to do it).
+                                Remember:
+                                -------------------------------------------------------------
+                                1) Only use this  tool  if  you  have  permissions  from  the
+                                infrastructure's owner. Don't be a dick. Don't  choose  jail.
+                                And if you have some scruples, don't hack others just because
+                                you can (or cannot, in which case that's why you  chose  this
+                                tool to do it).
 
-                        2) There is a template file on module directory that you  can
-                        use if you want to  develop  new  modules.  If  you  want  to
-                        contribute on this tool, be my guest.
+                                2) There is a template file on module directory that you  can
+                                use if you want to  develop  new  modules.  If  you  want  to
+                                contribute on this tool, be my guest.
 
-                        3) Thank you for using this tool and Hack the Planet Legally!
-                        -------------------------------------------------------------
+                                3) Thank you for using this tool and Hack the Planet Legally!
+                                -------------------------------------------------------------
 [*] Importing sessions found on ~/.aws
 [*] Imported sessions found on ~/.aws. Enter 'show credentials' to get the credentials.
-(work5)()(Nebula) >>>
+(test)()(Nebula)
 ```
 ### Help
 Running *help* command, will give you a list of the commands that can be used:

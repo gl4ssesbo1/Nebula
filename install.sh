@@ -71,52 +71,63 @@ On_ICyan='\033[0;106m'    # Cyan
 On_IWhite='\033[0;107m'   # White
 
 printf "$Color_Off"
+dockerexists=$(which docker | wc -m)
 
-printf "$Green ---------------------------------------------------------\n$Color_Off"
-printf "$Yellow               Installing Nebula \n$Color_Off"
-printf "$Green ---------------------------------------------------------\n$Color_Off"
+if [ $dockerexists -eq 0 ]; then
+  if [ "$EUID" -ne 0 ]
+    then echo "Please run as root or install docker manually"
+    exit
+  fi
 
-printf "$Yellow [*] Installing Docker\n$Color_Off"
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo rm get-docker.sh
-sudo rm /etc/apt/sources.list.d/docker.list
-sudo apt update
-sudo apt install docker.io docker
-printf "$Green [*] Installed Docker\n$Color_Off"
-printf "$Green ---------------------------------------------------------\n$Color_Off"
+  printf "$Green ---------------------------------------------------------\n$Color_Off"
+  printf "$Yellow               Installing Nebula \n$Color_Off"
+  printf "$Green ---------------------------------------------------------\n$Color_Off"
 
-printf "$Yellow [*] Installing Python3.9 and Python-PIP\n$Color_Off"
-sudo apt update
-#sudo apt install software-properties-common 
-#sudo add-apt-repository ppa:deadsnakes/ppa #$1 > /dev/null $2 > /dev/null
-sudo apt-get install python3 python3-pip $1 > /dev/null $2 > /dev/null
-printf "$Green [*] Installed Python3 and Python-PIP\n$Color_Off"
-printf "$Green ---------------------------------------------------------\n$Color_Off"
+  printf "$Yellow [*] Installing Docker\n$Color_Off"
+  curl -fsSL https://get.docker.com -o get-docker.sh
+  sudo sh get-docker.sh
+  sudo rm get-docker.sh
+  sudo rm /etc/apt/sources.list.d/docker.list
+  sudo apt update
+  sudo apt install docker.io docker
+  printf "$Green [*] Installed Docker\n$Color_Off"
+  printf "$Green ---------------------------------------------------------\n$Color_Off"
+fi
 
-printf "$Yellow [*] Installing Python Libraries\n$Color_Off"
-sudo python3 -m pip install -r requirements.txt $1 #> /dev/null $2 > /dev/null
-printf "$Green [*] Installed Python Libraries\n$Color_Off"
-printf "$Green ---------------------------------------------------------\n$Color_Off"
-
-# shellcheck disable=SC2059
-printf "$Yellow [*] Installing CLI Client Python Libraries\n$Color_Off"
-python3 -m pip install -r ./client/requirements.txt $1 #> /dev/null $2 > /dev/null
-# shellcheck disable=SC2059
-printf "$Green [*] Installed Python Libraries\n$Color_Off"
-# shellcheck disable=SC2059
+printf "$Yellow [*] Pulling mongo image\n$Color_Off"
+docker pull mongo
+printf "$Green [*] Pulled Docker Image\n$Color_Off"
 printf "$Green ---------------------------------------------------------\n$Color_Off"
 
-# shellcheck disable=SC2059
-printf "$Yellow [*] Installing Python Libraries\n$Color_Off"
-python3 -m pip install -r ./clientGUI/requirements.txt $1 #> /dev/null $2 > /dev/null
-printf "$Green [*] Installed Python Libraries\n$Color_Off"
+printf "$Yellow [*] Building Nebula Teamserver\n$Color_Off"
+docker build -t nebula-teamserver .
+echo "Cosmonaut Password"
+read $cospass
+echo "Database Name"
+read $dbname
+printf "$Green [*] Built Nebula Teamserver\n$Color_Off"
 printf "$Green ---------------------------------------------------------\n$Color_Off"
 
-printf "$Green [*] Nebula installed\n$Color_Off"
-printf "$Green [*] Run ./teamserver to start the Nebula Teamserver\n$Color_Off"
-printf "$Green [*] Run ./client/nebula to run the Nebula Client\n$Color_Off"
+printf "$Yellow [*] Creating Nebula Network\n$Color_Off"
+docker network create nebulanetwork
+printf "$Green [*] Built Nebula Client\n$Color_Off"
+printf "$Green ---------------------------------------------------------\n$Color_Off"
 
+printf "$Yellow [*] Building Nebula Client\n$Color_Off"
+cd client
+python3 -m venv ./venv
+source venv/bin/activate
+python3 -m pip install -r requirements.txt
+deactivate
+cd ..
+printf "$Green [*] Built Nebula Client.\n$Color_Off"
+printf "$Green ---------------------------------------------------------\n$Color_Off"
+
+printf "$Yellow [*] Running Backend\n$Color_Off"
+docker run --network nebulanetwork -p 27017:27017 -d -t mongo
+docker run --network nebulanetwork -p 5000:5000 -it nebula-teamserver -dn $dbname -p $cospass
+printf "$Green [*] Built Nebula Client\n$Color_Off"
 printf "$Green ---------------------------------------------------------\n$Color_Off"
 
 printf "$Color_Off"
+

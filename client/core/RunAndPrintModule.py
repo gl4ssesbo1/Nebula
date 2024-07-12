@@ -1,4 +1,6 @@
 import json
+import os
+
 import requests
 from termcolor import colored
 from pygments import highlight
@@ -24,12 +26,38 @@ def RunModule(module_char, module_options, cred_prof, useragent, workspace, web_
 
     #run_module_json = json.loads(run_module_output)
 
+AWS_REGIONS = [
+        "af-south-1",
+        "ap-east-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-south-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-gov-east-1",
+        "us-gov-west-1",
+        "us-west-1",
+        "us-west-2"
+    ]
 
 def PrintAWSModule(run_module_json):
     output = ""
-
-    for region, json_data in run_module_json.items():
-        if "error" in json_data:
+    for title, json_data in run_module_json.items():
+        if title == "error":
+            print(colored("[*] {}".format(json_data), "red"))
+        elif "error" in json_data:
             print(colored("[*] {}".format(json_data['error']), "red"))
         elif 'clientError' in json_data:
             continue
@@ -38,12 +66,16 @@ def PrintAWSModule(run_module_json):
                 "------------------------------------------------------------------\n",
                 "yellow", attrs=['bold'])
 
-            output += colored(
-                "Region: {}\n".format(region),
-                "yellow", attrs=['bold'])
-
             if isinstance(json_data, list):
                 for data in json_data:
+                    if not title in AWS_REGIONS:
+                        output += colored(
+                            f"{title}: {data[title]}\n",
+                            "yellow", attrs=['bold'])
+                    else:
+                        output += colored(
+                            f"Region: {title}\n",
+                            "yellow", attrs=['bold'])
                     output += colored(
                         "------------------------------------------------------------------\n",
                         "yellow", attrs=['bold'])
@@ -61,6 +93,14 @@ def PrintAWSModule(run_module_json):
                         "yellow",
                         attrs=['bold'])
             else:
+                if not title in AWS_REGIONS:
+                    output += colored(
+                        f"{title}: {json_data[title]}\n",
+                        "yellow", attrs=['bold'])
+                else:
+                    output += colored(
+                        f"Region: {title}\n",
+                        "yellow", attrs=['bold'])
                 output += colored(
                     "------------------------------------------------------------------\n",
                     "yellow", attrs=['bold'])
@@ -77,8 +117,11 @@ def PrintAWSModule(run_module_json):
                     "------------------------------------------------------------------\n",
                     "yellow",
                     attrs=['bold'])
-            pipepager(output, cmd='less -FR')
-    output = ""
+            if len(output.split("\n")) > (os.get_terminal_size().lines * 2):
+                pipepager(output, cmd='less -FR')
+            else:
+                print(output)
+            output = ""
 
 """for title_name, json_data in run_module_json.items():
     if isinstance(json_data, list):
@@ -142,6 +185,7 @@ def PrintModule(run_module_json):
                         "yellow",
                         attrs=['bold'])
             else:
+
                 output += colored(
                     "------------------------------------------------------------------\n",
                     "yellow", attrs=['bold'])
@@ -161,10 +205,9 @@ def PrintModule(run_module_json):
                 output += colored(
                     "------------------------------------------------------------------\n",
                     "yellow", attrs=['bold'])
-            pipepager(output, cmd='less -FR')
-            yn = input("Do you want to print the output? [y/N] ")
-            if yn != "Y" and yn != "y":
-                continue
+
+            if len(output.split("\n")) > (os.get_terminal_size().lines*2):
+                pipepager(output, cmd='less -FR')
             else:
                 print(output)
             output = ""

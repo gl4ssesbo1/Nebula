@@ -1,7 +1,7 @@
 from termcolor import colored
 import os
 import boto3, botocore
-
+from inspect import signature
 
 def enter_credentials(service, access_key_id, secret_key, region, ua, proxy_definitions):
     args = {
@@ -71,10 +71,14 @@ def enter_session(session_name, region, service, ua, proxy_definitions):
 
     return boto_session.client(**args)
 
-def run_aws_module(imported_module, all_sessions, cred_prof, useragent, web_proxies):
-    return imported_module.exploit(all_sessions, cred_prof, useragent, web_proxies)
+def run_aws_module(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace):
+    sig = signature(imported_module.exploit)
+    if len(sig.parameters) == 1 or len(sig.parameters) == 2:
+        return run_aws_module_one_service(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace)
+    elif len(sig.parameters) == 5:
+        return imported_module.exploit(all_sessions, cred_prof, useragent, web_proxies, workspace)
 
-def run_aws_module_old(imported_module, all_sessions, cred_prof, useragent, web_proxies):
+def run_aws_module_one_service(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace):
     service = imported_module.variables['SERVICE']['value']
     sess = {}
 
@@ -121,26 +125,34 @@ def run_aws_module_old(imported_module, all_sessions, cred_prof, useragent, web_
                         c = 1
 
             if c == 0:
-                env_aws = {}
+                env_aws = {
+                    "AWS_ACCESS_KEY": "",
+                    "AWS_SECRET_KEY": "",
+                    "AWS_SESSION_TOKEN": "",
+                    "AWS_REGION": ""
+                }
                 if os.environ.get('AWS_ACCESS_KEY'):
                     env_aws['AWS_ACCESS_KEY'] = os.environ.get('AWS_ACCESS_KEY')
                     del os.environ['AWS_ACCESS_KEY']
+                os.environ['AWS_ACCESS_KEY_ID'] = sess['access_key_id']
                 os.environ['AWS_ACCESS_KEY'] = sess['access_key_id']
 
                 if os.environ.get('AWS_SECRET_KEY'):
                     env_aws['AWS_SECRET_KEY'] = os.environ.get('AWS_SECRET_KEY')
                     del os.environ['AWS_SECRET_KEY']
+                os.environ['AWS_SECRET_ACCESS_KEY'] = sess['secret_key']
                 os.environ['AWS_SECRET_KEY'] = sess['secret_key']
 
                 if os.environ.get('AWS_SESSION_TOKEN'):
                     if 'session_token' in sess and sess['session_token'] != "":
-                        env_aws['AWS_SESSION_TOKEN'] = os.environ.get('AWS_SESSION_TOKEN')
                         del os.environ['AWS_SESSION_TOKEN']
+                    os.environ['AWS_SESSION_TOKEN'] = sess['session_token']
                     os.environ['AWS_SESSION_TOKEN'] = sess['session_token']
 
                 if os.environ.get('AWS_REGION'):
                     env_aws['AWS_REGION'] = os.environ.get('AWS_REGION')
                     del os.environ['AWS_REGION']
+                os.environ['AWS_DEFAULT_REGION'] = sess['region']
                 os.environ['AWS_REGION'] = sess['region']
 
                 if not 'session_token' in sess:
@@ -151,7 +163,7 @@ def run_aws_module_old(imported_module, all_sessions, cred_prof, useragent, web_
                                                   useragent,
                                                   proxy_definitions
                                                   )
-                    return imported_module.exploit(profile_v)
+                    return imported_module.exploit(profile_v, workspace)
 
 
                 elif 'session_token' in sess and sess['session_token'] != "":
@@ -163,7 +175,7 @@ def run_aws_module_old(imported_module, all_sessions, cred_prof, useragent, web_
                                                                      useragent,
                                                                      proxy_definitions
                                                                      )
-                    return imported_module.exploit(profile_v)
+                    return imported_module.exploit(profile_v, workspace)
 
                 else:
                     print(colored("[*] Check if the session key is empty.", "yellow"))
@@ -171,6 +183,10 @@ def run_aws_module_old(imported_module, all_sessions, cred_prof, useragent, web_
                 del os.environ['AWS_ACCESS_KEY']
                 del os.environ['AWS_SECRET_KEY']
                 del os.environ['AWS_REGION']
+
+                del os.environ['AWS_ACCESS_KEY_ID']
+                del os.environ['AWS_SECRET_ACCESS_KEY']
+                del os.environ['AWS_DEFAULT_REGION']
                 if os.environ.get('AWS_SESSION_TOKEN'):
                     del os.environ['AWS_SESSION_TOKEN']
 
@@ -184,4 +200,4 @@ def run_aws_module_old(imported_module, all_sessions, cred_prof, useragent, web_
                 del env_aws
 
     else:
-        return imported_module.exploit()
+        return imported_module.exploit(workspace)

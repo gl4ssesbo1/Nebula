@@ -1,4 +1,6 @@
-PySide2
+Werkzeug==2.2.2
+Flask==2.2.3
+#PySide2
 PyQt5
 prompt_toolkit
 prettytable

@@ -1,7 +1,5 @@
 import sys
-
 from mongoengine import DoesNotExist
-
 from core.database.models import AWSS3Bucket
 
 author = {
@@ -19,7 +17,7 @@ variables = {
         "required": "true",
         "description": "The service that will be used to run the module. It cannot be changed."
     },
-    "BUCKET-NAMES": {
+    "BUCKET-NAME": {
         "value": "",
         "required": "false",
         "description": "A specific bucket or a list of buckets split by comma."
@@ -35,15 +33,14 @@ calls = [
 aws_command = "aws s3api list-object-versions --bucket <my-bucket> --prefix <prefix>"
 
 
-def exploit(profile):
+def exploit(profile, workspace):
     deleted_files = []
-    bucket = variables["BUCKET-NAMES"]['value']
+    bucket = variables["BUCKET-NAME"]['value']
     return_dict = {
         "Bucket": bucket
     }
     all_objects = []
     try:
-
         all_versions = profile.list_object_versions(Bucket=bucket)
         for marker in all_versions['DeleteMarkers']:
             deleted_files.append(marker['Key'])

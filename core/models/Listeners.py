@@ -1,3 +1,5 @@
+import json
+
 from flask import Blueprint, request, Response
 import sys
 import socketserver, http.server
@@ -9,7 +11,7 @@ import ssl
 #from Listeners.HTTP.database.models import Listeners
 #from Listeners.HTTP.http_listener import start_listener
 
-from core.database.models import WebsocketListener
+from core.database.models import S3C2Listener, WebsocketListener
 from core.Listeners.WebSocket.server import start_websocket_listener
 
 listener_blueprint = Blueprint('listeners', __name__)
@@ -19,8 +21,12 @@ import multiprocessing
 @listener_blueprint.route('/api/latest/listeners', methods=['GET'])
 @jwt_required()
 def list_listeners():
-    listeners = WebsocketListener.objects().to_json()
-    return Response(listeners, mimetype="application/json", status=200)
+    listeners = S3C2Listener.objects().to_json()
+    listeners = json.loads(listeners)
+    if len(listeners) > 0:
+        return {"Listeners": listeners}
+    else:
+        return {"Listeners": None}
 
 @listener_blueprint.route('/api/latest/listeners', methods=['POST'])
 @jwt_required()
@@ -93,13 +99,13 @@ def set_listener():
         except:
             return {"error": str(sys.exc_info()[1])}, 500
 
-@listener_blueprint.route('/api/latest/listeners/<string:id>', methods=['DELETE'])
+@listener_blueprint.route('/api/latest/listeners', methods=['DELETE'])
 @jwt_required()
 def delete_listener():
     try:
         body = request.get_json()
-        listener_name = body['listener_name']
-        #Listeners.objects.get_or_404(listener_name=listener_name).delete()
+        listener_name = body['listener_bucket_name']
+        S3C2Listener.objects.get_or_404(listener_bucket_name=listener_name).delete()
         return '', 200
     except:
-        return sys.exc_info()[1], 500
+        return {"error": str(sys.exc_info()[1])}

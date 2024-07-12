@@ -28,7 +28,9 @@ variables = {
 	"WORDLIST":{
 		"value":"",
 		"required":"false",
-        "description":"A wordlist of emails"
+        "description":"A wordlist of emails",
+		"iswordlist": True,
+		"wordlistvalue": []
 	}
 }
 

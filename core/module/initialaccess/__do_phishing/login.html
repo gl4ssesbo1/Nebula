@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href='https://fonts.googleapis.com/css?family=Epilogue' rel='stylesheet'>
+<style>
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+header {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #fff;
+  height=50px;
+}
+
+.rcorners1 {
+  border-radius: 25px;
+  background: #fff;
+  padding: 20px; 
+  width: 50%;
+  height: auto; 
+  box-shadow: rgba(99, 99, 99, 0.2) 1px 2px 10px 1px; 
+  position: relative;
+  
+  top: 20%; bottom:45%;  left: 20%; right: 0%;
+  
+  /*display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: auto;
+  margin-bottom: auto;
+  width: 50%;*/
+}
+
+.learnmorebanner {
+  position: relative;
+  top: 10%; bottom:45%;  left: 20%; right: 0%;
+  
+  /*display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: auto;
+  margin-bottom: auto;
+  width: 50%;*/
+}
+
+
+li {
+  float: right;
+}
+
+.container {
+    display: table;
+    height: 100%;
+    position: absolute;
+    overflow: hidden;
+    width: 50%;
+}
+
+.helper {
+    #position: absolute;
+    #top: 30%;
+    display: table-cell;
+    vertical-align: middle;
+}
+
+
+
+li a {
+  display: block;
+  color: blue;
+  width=20%;
+  font-family: "consolas";
+  text-decoration: underline;
+}
+
+a {
+  display: block;
+  color: blue;
+  width=20%;
+  font-family: "consolas";
+  text-decoration: underline;
+}
+
+.inputext {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  border:1px solid rgb(135, 148, 176);
+}
+
+.inputext:hover {
+      border-color:blue;
+      transition: 0.3s;
+}
+
+button {
+  width: 100%;
+  background-color: rgb(0, 97, 235);
+  color: white;
+  font-weight: bold;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+      background-color:rgb(51, 135, 255);
+      transition: 0.7s;
+}
+
+.signinwith {
+  width: 100%;
+  background-color: white;
+  color: black;
+  font-weight: bold;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  border:1px solid rgb(135, 148, 176);
+}
+
+/*border-color: rgb(135, 148, 176);  #e7e7e7  */
+
+.signinwith:hover {
+      background-color:rgb(0, 97, 235);
+      transition: 0.3s;
+}
+
+.learnmore {
+  width: 120px;
+  background-color: white;
+  font-weight: bold;
+  color: rgb(0, 97, 235);
+  cursor: pointer;
+  border:2px solid rgb(0, 97, 235);
+}
+
+/*border-color: rgb(135, 148, 176);  #e7e7e7  */
+
+.learnmore:hover {
+      background-color:rgb(0, 97, 235);
+      color: white;
+	  transition: 0.3s;
+}
+
+
+
+input[type=submit] {
+  width: 100%;
+  background-color: blue;
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+li p {
+  color: black;
+  font-family: "calibri";
+}
+
+.row {
+  margin: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.block {
+  margin: auto;
+  /*
+  margin-bottom: auto;
+  margin-top: auto;
+  margin-left: 25%;
+  margin-right: auto; 
+  */
+  align: left;
+  width: 50%;
+  /*left: 0%;*/
+  transform: translateX(0%);
+  transform: translateY(30%);
+  bottom: 30%;
+  position: relative;
+  
+  /*position: absolute;*/
+}
+
+.block2 {
+  margin: auto;
+  align: right;
+  width: 50%;
+  left: 50%;
+  transform: translateX(60%);
+  transform: translateY(50%);
+  bottom: 30%;
+  position: absolute;
+}
+
+h1 {
+	font-family: "Epilogue";
+	font-size: 32px;
+	font-weight: bold;
+	
+}
+
+h4 {
+	font-family: "Epilogue";
+	font-size: 18px;
+	font-weight: bold;
+	line-height: 1.8;
+}
+
+.h1 {
+	font-family: "Epilogue";
+	font-size: 32px;
+	font-weight: bold;
+	position: absolute;
+	left:20%;
+}
+
+body {
+  background-image: url('wallpaper.png');
+  background-repeat: no-repeat;
+  background-size: 100% 150%;
+}
+
+.center {
+  display: block;
+  /*margin-left: auto;*/
+  /*margin-right: auto;*/
+  /*width: 50%;*/
+  position: relative;
+  top: 30%; bottom:45%;  left: 0%; right: 0%;
+}
+
+.centerbutton {
+  display: block;
+  margin-left: 40%;
+  margin-right: 50%;
+  width: 50%;
+}
+
+.logo-img {
+    float: left;
+    position: relative;
+}
+
+.bg-div {
+   width: 100%;
+   overflow: hidden;
+   background-color: white;
+}
+
+header {
+    float: right;
+}
+
+.loginimg {
+	align: center;
+	width: 25px;
+	height: 25px;
+	border-radius: 5px;
+}
+
+</style>
+
+<title>Sign in to your account | DigitalOcean</title>
+<link rel="icon" type="image/png" href="./favicon.png">
+</head>
+	
+	<body>
+		
+		<!--
+		<div>
+		<header>
+			<a class="active" href="https://digitalocean.com" style="align:left;"><img src="./logo.jpg" style="height:50px;align:left;"></a>
+			<ul>
+				<li><a class="active" href="https://cloud.digitalocean.com/registrations/new" style="padding: 16px 16px;">Sign Up</a></li>
+				<li><p>Don't have an account?</p></li>
+			</ul>
+		</header>
+		</div>
+		-->
+		
+  		<!--<ul>
+    		<li> Don't have an account? <a class="active" href="https://cloud.digitalocean.com/registrations/new">Sign Up</a></li>
+    		<li> <p>Don't have an account?</p></li>
+            <li><img src="./pad.png" style="width:30%;align:left;"></li>
+			<li><img src="./pad.png" style="width:30%;align:left;"></li>
+            <li><img src="./logo.jpg" style="height:50px;align:left;"></li>
+  		</ul>
+		-->
+		
+		<div class="bg-div">
+		<a class="active" href="https://digitalocean.com" style="align:left;"><img class="logo-img" src="./logo.jpg" style="height:50px;align:left;"></a>
+		
+		<header>
+			<ul>
+				<li><a class="active" href="https://cloud.digitalocean.com/registrations/new" style="padding: 16px 16px;">Sign Up</a></li>
+				<li><p>Don't have an account?</p></li>
+			</ul>
+		</header>
+		</div>
+		
+		<div style="width:100%; heigh:10%;">
+		</div>
+		
+		<!--<div style="float: left; width: 50%;">-->
+		
+		<div class="container">
+			<div class="rcorners1" style="align:center;">
+				<form action="./loginProcess.php" method="POST">
+					<h1>Log in to your account</h1>
+					<label style="font-family:consolas;font-size:12pt;color: blue;">email<span style="font-family:consolas;font-size:10pt;color: red;" >*</span></label>
+					<div></div>
+					<input type="text" class="inputext" name="email" placeholder="Enter your email address"></input>
+					<div></div>
+					<div></div>
+					<br>
+					<label style="font-family:consolas;font-size:12pt;color: blue;" >password<span style="font-family:consolas;font-size:10pt;color: red;" >*</span></label>
+					<div></div>
+					<input type="password" class="inputext" name="password" placeholder="Enter your password"></input>
+					<div></div>
+					<button id="loginuser" action="submit">Log In</button>
+				</form>
+				
+				<hr>
+				<button id="signinwithgoogle" class="signinwith">
+					<div>
+						<img src="./googlelogo.JPG" class="loginimg" > Sign In with Google</div>
+					</button>
+				<button id="signinwithgithub" class="signinwith">
+					<div>
+						<img src="./githublogo.JPG" class="loginimg" /> Sign In with GitHub</div>
+					</button>
+				<a class="active" href="https://cloud.digitalocean.com/registrations/new" style="padding: 10px 10px;">Forgot Password</a>
+			</div>
+		  </div>
+		  
+		  
+		  
+		  <div style="float:right;width:50%;text-align:center;padding: 5% 0;">
+			<img src="code card.png" height="300px" width="500px">
+			<br>
+			<h1 align="left" style="text-align:center;">Introducing DigitalOcean </h1>
+			<h1 align="left" style="text-align:center;">Functions</h1>
+			
+			<h4 align="left" style="text-align:center;">
+			A powerful, serverless compute solution that <br>
+			enables you to focus on your code, scale instantly <br> 
+			with confidence, and save costs by eliminating the <br>
+			need to maintain servers <br>
+			</h4>
+			<br>
+			<form action="https://www.digitalocean.com/blog/introducing-digitalocean-functions-serverless-computing">
+				<div>
+					<button id="learnmorebutton" class="learnmore">
+						Learn More
+					</button>
+				</div>
+			</form>
+			
+			
+		  </div>
+		
+        
+	</body>
+</html>
+
+
