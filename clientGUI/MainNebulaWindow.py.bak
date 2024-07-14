@@ -255,7 +255,7 @@ class MainNebulaWindow(QtWidgets.QMainWindow):
         for i in range(layout.count()+100):
             try:
                 layout.itemAt(i).widget().deleteLater()
-            except:
+            except Exception as e:
                 pass
 
     def runModule(self):
@@ -700,7 +700,7 @@ class MainNebulaWindow(QtWidgets.QMainWindow):
                     out = os.popen(command).read()
                     self.nebulaConsoleTextEdit.insertPlainText("{}\n".format(out))
 
-            except:
+            except Exception as e:
                 self.nebulaConsoleTextEdit.insertPlainText("'{}' is not a valid command.\n".format(command))
 
         self.nebulaConsoleTextEdit.insertPlainText(self.initial_console_string.format(self.workspace, self.current_module))

@@ -65,7 +65,7 @@ class Widget(QtWidgets.QWidget):
             msg.exec_()
             del(msg)
 
-        except:
+        except Exception as e:
             msg = QMessageBox()
             msg.setText("{}".format(sys.exc_info()[1]))
             msg.exec_()

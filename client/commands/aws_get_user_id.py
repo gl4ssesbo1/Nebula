@@ -10,5 +10,5 @@ def get_user_id(apihost, jwt_token, profile_dict):
         return users
 
     except flask_mongoengine.DoesNotExist:
-        return {'error': str(sys.exc_info()[1])}
+        return {'error': str(e)}
 

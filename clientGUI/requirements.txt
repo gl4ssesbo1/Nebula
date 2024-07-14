@@ -9,4 +9,4 @@ requests
 termcolor
 colorama
 justifytext
-flask_mongoengine
+flask-mongoengine-3

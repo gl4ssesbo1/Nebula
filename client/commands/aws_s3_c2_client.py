@@ -23,7 +23,7 @@ def getparticlelist(profile, bucket_name, particles):
                 if key['key'][-1] == "/":
                     if not key['key'][-1] in particles:
                         particles.append(key['key'][-1])
-    except:
+    except Exception as e:
         print(
             colored(
                 f"[*] Error: {sys.exc_info()[1]}", "red"
@@ -48,7 +48,7 @@ def getsendcommand(bucket_name, particle_name, command_key, output_key, command,
                             # SSEKMSKeyId=kmskeyid,
                             # ServerSideEncryption ='aws:kms'
                         )['Body'].read().decode())
-                    except:
+                    except Exception as e:
                         pass
                     s3Client.delete_object(
                         Bucket=bucket_name,
@@ -108,7 +108,7 @@ def getsendcommand(bucket_name, particle_name, command_key, output_key, command,
                                 # ServerSideEncryption ='aws:kms'
                             )
                             break
-                        except:
+                        except Exception as e:
                             time.sleep(5)
                             testparticle += 5
                             if testparticle == 30:
@@ -164,7 +164,7 @@ def getsendcommand(bucket_name, particle_name, command_key, output_key, command,
                         )
 
                         break
-                    except:
+                    except Exception as e:
                         time.sleep(5)
                         testparticle += 5
                         if testparticle == 30:
@@ -218,7 +218,7 @@ def getsendcommand(bucket_name, particle_name, command_key, output_key, command,
                     )
 
                     break
-                except:
+                except Exception as e:
                     time.sleep(5)
                     testparticle += 5
                     if testparticle == 30:
@@ -228,7 +228,7 @@ def getsendcommand(bucket_name, particle_name, command_key, output_key, command,
                     pass
 
 
-    except:
+    except Exception as e:
         print(
             colored(
                 f"[*] Error: {sys.exc_info()[1]}", "red"
@@ -245,14 +245,14 @@ def deleteparticle(s3Client, particle_name, bucket_name, commandfile, outputfile
             Bucket=bucket_name,
             Key=f"{particle_name}/{commandfile}"
         )
-    except:
+    except Exception as e:
         pass
     try:
         s3Client.delete_object(
             Bucket=bucket_name,
             Key=f"{particle_name}/{outputfile}"
         )
-    except:
+    except Exception as e:
         pass
 
     try:
@@ -260,7 +260,7 @@ def deleteparticle(s3Client, particle_name, bucket_name, commandfile, outputfile
             Bucket=bucket_name,
             Key=f"{particle_name}/"
         )
-    except:
+    except Exception as e:
         pass
 
     for particlelist in particles:

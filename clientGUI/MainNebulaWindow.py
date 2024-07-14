@@ -301,7 +301,7 @@ class MainNebulaWindow(QtWidgets.QMainWindow):
         for i in range(layout.count()+100):
             try:
                 layout.itemAt(i).widget().deleteLater()
-            except:
+            except Exception as e:
                 pass
 
     def runModule(self):
@@ -342,11 +342,14 @@ class MainNebulaWindow(QtWidgets.QMainWindow):
 
                 self.logsTextEdit.insertPlainText("[{}] User {} ran module {}\n".format(datetime.now(), self.username, self.current_module))
                 run_module_options ={
-                        'module': self.current_module,
-                        'module_options': self.module_options,
-                        'cred-prof': self.cred_prof,
-                        'user-agent': self.useragent,
-                        'workspace': self.workspace
+                    'module': self.current_module,
+                    'module_options': self.module_options,
+                    'cred-prof': self.cred_prof,
+                    'user-agent': self.useragent,
+                    'workspace': self.workspace,
+                    'web-proxies': [],
+                    'username': self.username,
+                    'awsregion': 'us-east-1'
                 }
 
                 run_module_output = requests.post("http://{}:{}/api/latest/modules/run".format(self.apiHost, self.apiPort),
@@ -753,7 +756,7 @@ class MainNebulaWindow(QtWidgets.QMainWindow):
                     out = os.popen(command).read()
                     self.nebulaConsoleTextEdit.insertPlainText("{}\n".format(out))
 
-            except:
+            except Exception as e:
                 self.nebulaConsoleTextEdit.insertPlainText("'{}' is not a valid command.\n".format(command))
 
         self.nebulaConsoleTextEdit.insertPlainText(self.initial_console_string.format(self.workspace, self.current_module))
@@ -763,11 +766,11 @@ class MainNebulaWindow(QtWidgets.QMainWindow):
             domains = json.loads(requests.get("http://{}:{}/api/latest/domains".format(apihost, apiport), headers={"Authorization": "Bearer {}".format(jwt_token)}).text)
             self.domains = domains
             return True
-        except:
+        except Exception as e:
             msg = QMessageBox()
             msg.setWindowIcon(QtGui.QIcon('logo.png'))
             msg.setWindowTitle("Error")
-            msg.setText(str(sys.exc_info()))
+            msg.setText(str(e))
             msg.exec_()
             del(msg)
 
@@ -790,11 +793,11 @@ class MainNebulaWindow(QtWidgets.QMainWindow):
 
             return False
 
-        except:
+        except Exception as e:
             msg = QMessageBox()
             msg.setWindowIcon(QtGui.QIcon('logo.png'))
             msg.setWindowTitle("Error")
-            msg.setText(str(sys.exc_info()))
+            msg.setText(str(e))
             msg.exec_()
             del(msg)
 
@@ -965,11 +968,11 @@ class MainNebulaWindow(QtWidgets.QMainWindow):
 
             return True
 
-        except:
+        except Exception as e:
             msg = QMessageBox()
             msg.setWindowIcon(QtGui.QIcon('logo.png'))
             msg.setWindowTitle("Error")
-            msg.setText(str(sys.exc_info()))
+            msg.setText(str(e))
             msg.exec_()
             del(msg)
 

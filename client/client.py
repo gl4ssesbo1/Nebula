@@ -90,11 +90,11 @@ try:
         exit()
 
 except requests.exceptions.ConnectionError:
-    print(str(sys.exc_info()))
+    print(str(e))
     print(colored("[*] Failed to establish a new connection to the Teamserver API Server", "red"))
     exit()
 
-except:
+except Exception as e:
     print(colored("[*] {}".format(sys.exc_info()[1]), "red"))
     exit()
 
@@ -511,7 +511,7 @@ def main(workspace, particle, module_char):
     except mongoengine.DoesNotExist:
         S3C2Particle(**dbdata).save()
 
-    except:
+    except Exception as e:
         e = sys.exc_info()
         return {"error": "Error from module: {}".format(str(e))}, 500
     """
@@ -677,10 +677,10 @@ def main(workspace, particle, module_char):
 
                                 break
                         except botocore.exceptions.InvalidConfigError:
-                            print(colored(f"[*] {str(sys.exc_info()[1])}", 'red'))
+                            print(colored(f"[*] {str(e)}", 'red'))
 
-                        except:
-                            print(colored(f"[*] {str(sys.exc_info())}", 'red'))
+                        except Exception as e:
+                            print(colored(f"[*] {str(e)}", 'red'))
 
 
         completer = NestedCompleter.from_nested_dict(comms)
@@ -745,7 +745,7 @@ def main(workspace, particle, module_char):
                                                 "particle_listener_name": listener['listener_bucket_name']
                                             })
                                             comms['use']['particle'][lkey['Key'][:-1]] = None
-                        except:
+                        except Exception as e:
                             print(
                                 colored(
                                     "[*] The bucket does not exist. Deleting listener", "red"
@@ -1156,7 +1156,7 @@ def main(workspace, particle, module_char):
                             try:
                                 del key
                                 del value
-                            except:
+                            except Exception as e:
                                 pass
 
                     else:
@@ -1190,7 +1190,7 @@ def main(workspace, particle, module_char):
                         try:
                             del key
                             del value
-                        except:
+                        except Exception as e:
                             pass
 
                 if command.split(" ")[1] == 'modules':
@@ -1295,7 +1295,7 @@ def main(workspace, particle, module_char):
                     while i == 0:
                         try:
                             listener_port = int(listener_port_string)
-                        except:
+                        except Exception as e:
                             listener_port_string = input("Please enter an int for the port: ")
 
 
@@ -1482,7 +1482,7 @@ def main(workspace, particle, module_char):
                             ), "green"))
 
                     except ValueError:
-                        print(str(sys.exc_info()))
+                        print(str(e))
                         print(colored("[*] Port should be an integer"))
 
 
@@ -1822,11 +1822,11 @@ def main(workspace, particle, module_char):
                                         del listenerlist
                                         del listenerargs
                                         shellchekc = 1
-                                    except:
+                                    except Exception as e:
                                         shellchekc = 1
                                         print(
                                             colored(
-                                                f"[*] Error connecting to client: {str(sys.exc_info())}", "red"
+                                                f"[*] Error connecting to client: {str(e)}", "red"
                                             )
                                         )
                     if shellchekc == 0:
@@ -2049,8 +2049,8 @@ def main(workspace, particle, module_char):
                             print(f"[*] {colored('Proxy not found', 'red')}")
                         except FileNotFoundError:
                             print(f"[*] {colored('Certificate File not found', 'red')}")
-                        except:
-                            print(f"[*] {colored(str(sys.exc_info()), 'red')}")
+                        except Exception as e:
+                            print(f"[*] {colored(str(e), 'red')}")
 
                 elif command.split(" ")[1] == 'azure-credentials':
                     if len(command.split(" ")) < 3:
@@ -2373,7 +2373,7 @@ def main(workspace, particle, module_char):
                     elif system == 'Linux' or system == 'Darwin':
                         out = os.popen(command).read()
                         print(out)
-                except:
+                except Exception as e:
                     print(colored("[*] '{}' is not a valid command.".format(command), "red"))
 
             com = "({})({})({}) >>> ".format(colored(workspace, "green"), colored(particle, "red"),
