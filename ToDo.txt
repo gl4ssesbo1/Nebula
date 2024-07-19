@@ -2,16 +2,12 @@
     reconnaissance/misc_gitdumper
 
 [*] Enum:
+    enum/aws_iam_enum_all
     https://github.com/prowler-cloud/prowler
     RoadTools
     All Zeus Features: https://github.com/DenizParlak/Zeus
 
-[*] Console
-    https://github.com/NetSPI/aws_consoler (Done)
-
 [*] Exploit
-    Device Code Phishing
-
     Bitlocker Dump: (Get-MgInformationProtectionBitlockerRecoveryKey -All) | ForEach-Object {
 $device = (Get-MgDevice -Filter "deviceId eq '$($_.DeviceId)'").DisplayName
 $key = (Get-MgInformationProtectionBitlockerRecoveryKey -BitlockerRecoveryKeyId $_.Id -Property Key).Key
@@ -38,7 +34,6 @@ $lapsReport
 
 [*] Persistence
     Golden SAML Attack
-    Update AWS key
 
 [*] Commands
     list_aws_iam_groups

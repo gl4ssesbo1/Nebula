@@ -89,8 +89,7 @@ try:
         print(colored("[*] {}".format(jwt_token_dict['error']), "red"))
         exit()
 
-except requests.exceptions.ConnectionError:
-    print(str(e))
+except requests.exceptions.ConnectionError as e:
     print(colored("[*] Failed to establish a new connection to the Teamserver API Server", "red"))
     exit()
 
@@ -1180,6 +1179,21 @@ def main(workspace, particle, module_char):
                                         colored(key, "red"),
                                         colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
                                     ))
+                                elif key == "azure_access_token":
+                                    print("\t{}: {}".format(
+                                        colored(key, "red"),
+                                        colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
+                                    ))
+                                elif key == "azure_id_token":
+                                    print("\t{}: {}".format(
+                                        colored(key, "red"),
+                                        colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
+                                    ))
+                                elif key == "azure_refresh_token":
+                                    print("\t{}: {}".format(
+                                        colored(key, "red"),
+                                        colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
+                                    ))
                                 else:
                                     print("\t{}: {}".format(
                                         colored(key, "red"),
@@ -1989,9 +2003,6 @@ def main(workspace, particle, module_char):
                     elif command.split(" ")[2] == 'custom':
                         useragent = input("User-Agent>>> ")
                     print(colored(f"[*] User Agent Set to: {useragent}", "green"))
-                    with open(f"{sys.prefix}/lib/python3.10/site-packages/botocore/.user-agent", "w") as uafile:
-                        uafile.write(useragent)
-                        uafile.close()
 
                 elif command.split(" ")[1] == 'web-proxy-certificate':
                     if len(command.split(" ")) < 4:

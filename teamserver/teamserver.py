@@ -208,10 +208,17 @@ app.config['JWT_SECRET_KEY'] = jwt_token
 #    'host': 'mongodb://{}:{}/{}'.format(host, port, database),
 #}
 
+
 if os.environ.get("VIRTUAL_ENV"):
     sessionfile = f"{os.environ.get('VIRTUAL_ENV')}/lib/python3.10/site-packages/botocore/session.py"
+    useragentfile = f"{os.environ.get('VIRTUAL_ENV')}/lib/python3.10/site-packages/botocore/.user-agent"
 else:
-    sessionfile = f"/usr/lib/python3/dist-packages/botocore/session.py"
+    if os.path.exists(f"/usr/lib/python{sys.version.split('.')[0]}.{sys.version.split('.')[1]}/dist-packages/botocore/session.py"):
+        sessionfile = f"/usr/lib/python{sys.version.split('.')[0]}.{sys.version.split('.')[1]}/dist-packages/botocore/session.py"
+        useragentfile = f"/usr/lib/python{sys.version.split('.')[0]}.{sys.version.split('.')[1]}/dist-packages/botocore/.user-agent"
+    else:
+        sessionfile = f"/usr/local/lib/python3.10/site-packages/botocore/session.py"
+        useragentfile = f"/usr/local/lib/python3.10/site-packages/botocore/.user-agent"
 
 with open(sessionfile, "r") as botocoresessionfile:
     botocorecheck = 0
@@ -225,8 +232,8 @@ with open(sessionfile, "r") as botocoresessionfile:
             for bline in botocoresessionfilelines:
                 if 'return base' in bline:
                     botocoresessiontemp.write('\t\timport sys\n'.expandtabs(4))
-                    botocoresessiontemp.write('\t\tif os.path.exists(f"{sys.prefix}/lib/python3.10/site-packages/botocore/.user-agent"):\n'.expandtabs(4))
-                    botocoresessiontemp.write('\t\t\twith open(f"{sys.prefix}/lib/python3.10/site-packages/botocore/.user-agent") as uafile:\n'.expandtabs(4))
+                    botocoresessiontemp.write(f'\t\tif os.path.exists(f"{useragentfile}"):\n'.expandtabs(4))
+                    botocoresessiontemp.write(f'\t\t\twith open(f"{useragentfile}") as uafile:\n'.expandtabs(4))
                     botocoresessiontemp.write('\t\t\t\tbase = uafile.read().replace("\\n", "").strip()\n'.expandtabs(4))
                     botocoresessiontemp.write('\n')
                     botocoresessiontemp.write(bline)

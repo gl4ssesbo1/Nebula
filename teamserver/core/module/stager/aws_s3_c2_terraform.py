@@ -90,7 +90,7 @@ resource "aws_s3_object" "particle_dir" {{
     local_file.command_file
   ]
   count = fileexists("./.particle") ? 0 : 1
-  bucket = "testbucketbucketdhasjdkasdasddas"
+  bucket = "{bucket}"
   key = "${{local.particle_name}}/"
   kms_key_id = "{kmskey}"
 }}
@@ -139,9 +139,9 @@ resource "aws_s3_object" "output_object" {{
     data.aws_s3_object.particle_file,
   ]
   key    = "${{local.particle_name}}/{outputkey}"
-  bucket = "testbucketbucketdhasjdkasdasddas"
+  bucket = "{bucket}"
   source = "/tmp/output.txt"
-  kms_key_id = "arn:aws:kms:us-east-1:621042647096:key/a8770df0-57d0-4524-8b2e-76736298b116"
+  kms_key_id = "{kmskey}"
 }}
 
 resource "null_resource" "rm_output" {{

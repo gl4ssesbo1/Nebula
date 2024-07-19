@@ -1,3 +1,5 @@
+import sys
+
 from termcolor import colored
 import os
 import boto3, botocore
@@ -79,6 +81,18 @@ def run_aws_module(imported_module, all_sessions, cred_prof, useragent, web_prox
 def run_aws_module_one_service(imported_module, all_sessions, cred_prof, useragent, web_proxies, workspace):
     service = imported_module.variables['SERVICE']['value']
     sess = {}
+
+    if useragent != "":
+        if os.path.exists(f"{os.environ.get('VIRTUAL_ENV')}/lib/python3.10/site-packages/botocore/session.py"):
+            useragentfile = f"{os.environ.get('VIRTUAL_ENV')}/lib/python3.10/site-packages/botocore/.user-agent"
+        elif os.path.exists(f"/usr/lib/python{sys.version.split('.')[0]}.{sys.version.split('.')[1]}/dist-packages/botocore/session.py"):
+            useragentfile = f"/usr/lib/python{sys.version.split('.')[0]}.{sys.version.split('.')[1]}/dist-packages/botocore/.user-agent"
+        elif os.path.exists(f"/usr/local/lib/python3.10/site-packages/botocore/session.py"):
+            useragentfile = f"/usr/local/lib/python3.10/site-packages/botocore/.user-agent"
+
+        with open(useragent, "w") as uafile:
+            uafile.write(useragent)
+            uafile.close()
 
     proxy_definitions = {}
 

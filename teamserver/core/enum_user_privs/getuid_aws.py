@@ -143,7 +143,7 @@ def getuid(profile_dict, workspace):
                 region_name=region,
                 aws_access_key_id=access_key_id,
                 aws_secret_access_key=secret_key,
-                aws_session_token = session_token
+                aws_session_token=session_token
             )
 
         if not username == "":
@@ -153,6 +153,21 @@ def getuid(profile_dict, workspace):
             del response['ResponseMetadata']
 
             all_info['UserInfo'] = response
+
+            response = client.list_user_policies(
+                UserName=username
+            )
+
+            while response['IsTruncated']:
+                response.update(client.list_user_policies(
+                    UserName=username,
+                    Marker=response['Marker']
+                ))
+
+            if response['ResponseMetadata']:
+                del response['ResponseMetadata']
+
+            all_info['UserPolicies'] = response['PolicyNames']
 
             response = client.list_attached_user_policies(
                 UserName=username

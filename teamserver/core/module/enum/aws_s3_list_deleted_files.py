@@ -35,7 +35,7 @@ calls = [
 aws_command = "aws s3api list-object-versions --bucket <my-bucket> --prefix <prefix>"
 
 
-def exploit(profile):
+def exploit(profile, workspace):
     deleted_files = []
     bucket = variables["BUCKET-NAMES"]['value']
     return_dict = {

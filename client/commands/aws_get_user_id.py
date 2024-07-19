@@ -9,6 +9,6 @@ def get_user_id(apihost, jwt_token, profile_dict):
         users = json.loads(requests.get("{}/api/latest/clientcommands".format(apihost), headers={"Authorization": "Bearer {}".format(jwt_token)}, json=profile_dict).text)
         return users
 
-    except flask_mongoengine.DoesNotExist:
+    except flask_mongoengine.DoesNotExist as e:
         return {'error': str(e)}
 
