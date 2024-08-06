@@ -21,9 +21,9 @@ variables = {
         "description":"The ID of the GuardDuty Detector to Disable"
 	}
 }
-description = "Disables a GD Detector on a specific region. Mind you, many security systems detect this behaviour."
+description = "Reenabled Guard Duty Data Sources that has been disabled before"
 
-aws_command = "aws guardduty update-detector --detector-id <detector-id>  --no-enable  --region <region> --profile <profile>"
+aws_command = "aws guardduty update-detector --detector-id <detector-id>  --enable  --region <region> --profile <profile>"
 
 calls = [
 	"guardduty:UpdateDetector"
@@ -37,13 +37,13 @@ def exploit(profile, workspace):
 			DetectorId=detectorID,
 			DataSources={
 				'S3Logs': {
-					'Enable': False
+					'Enable': True
 				}
 			}
 		)
-		status = f"Detector {detectorID} S3 Source was disabled"
+		status = f"Detector {detectorID} S3 Source was enabled"
 	except Exception as e:
-		status = f"Detector {detectorID} S3 Source was not disabled with error code: {str(e)}."
+		status = f"Detector {detectorID} S3 Source was not enabled with error code: {str(e)}."
 
 	return {
 		"Detector": {

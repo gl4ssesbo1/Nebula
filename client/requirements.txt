@@ -1,3 +1,4 @@
+docker
 boto3
 pygments
 #click==7.1.1

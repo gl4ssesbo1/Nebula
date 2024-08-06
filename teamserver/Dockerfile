@@ -15,4 +15,6 @@ RUN dpkg -i session-manager-plugin.deb
 RUN service docker start
 RUN ls /nebula
 
+EXPOSE 5000
+
 ENTRYPOINT ["python3", "teamserver.py"]

@@ -7,6 +7,7 @@ def help():
     useragent_commands()
     shell_help()
     user_help()
+    info_help()
 
 def specific_help(command):
     if command == 'user-agent':
@@ -17,6 +18,8 @@ def specific_help(command):
         credential_commands()
     elif command == 'user':
         user_help()
+    elif command == 'info':
+        info_help()
     elif command == 'shell':
         shell_help()
     else:
@@ -31,6 +34,8 @@ def help_commands():
     help module                         Show help for modules
     help user-agent                     Show help for credentials
     help shell                          Show help for shell connections
+    help info                           Show help for info commands
+    help user                           Show help for cosmonauts
     '''))
 
 def module_commands():
@@ -72,7 +77,7 @@ def credential_commands():
     show current-creds                  Show credentials you are currently using
     remove credentials                  Delete credentials
     getuid                              Get the username, arn, account ID from a set of credentials you have found.
-    enum_user_privs                     Get the Read Privileges of a set of Credentials
+    getuid ssmrole                      Check if the SSM Instance Profile is using AmazonEC2RoleforSSM or AmazonSSMManagedInstanceCore
     '''))
 
 def shell_help():
@@ -80,8 +85,7 @@ def shell_help():
     Shell commands                      Description
     -------------------                 -----------''', "green", attrs=['bold']))
     print(colored(
-    '''    shell check_env                     Check the environment you are in, get data and meta-data
-    shell exit                          Kill a connection
+    '''    shell exit_particle_shell           Kill a connection
     shell <command>                     Run a command on a system. You don't need " on the command, just shell <command1> <command2>
     '''))
 
@@ -90,5 +94,18 @@ def user_help():
     User commands                       Description
     -------------------                 -----------''', "green", attrs=['bold']))
     print(colored(
-    '''    create user <username>              Check the environment you are in, get data and meta-data
+    '''    create user <user>                  Create a new user to login to the teamserver
+    reset-password <user>               Reset the password of a current user
+    remove user <user>                  Delete a current user
+    '''))
+
+def info_help():
+    print(colored('''
+    Info commands                       Description
+    -------------------                 -----------''', "green", attrs=['bold']))
+    print(colored(
+    '''    list_aws_iam_users                  List all the users enumerated before and stored on the database
+    get_aws_iam_user <user>             Get info on a single user provided
+    list_aws_s3_bucket <user>           List all buckets enumerated before
+    get_aws_s3_bucket <bucket>          Get info on one specific bucket
     '''))

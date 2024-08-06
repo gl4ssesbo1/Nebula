@@ -1,21 +1,18 @@
-import sys
 import boto3
 import botocore
 
-import flask_mongoengine
-from flask import Blueprint, request, Response
-from core.database.models import Cosmonaut
-import sys
-from flask import Response, request
-from flask_jwt_extended import create_access_token, jwt_required
-import datetime
-import json
+from flask import Blueprint, request
+from flask_jwt_extended import jwt_required
 
 clientcommands_blueprint = Blueprint('clientcommands', __name__)
 
-@clientcommands_blueprint.route('/api/latest/clientcommands', methods=['GET'])
+@clientcommands_blueprint.route('/api/latest/clientcommands/get_user_id', methods=['GET'])
 @jwt_required()
-def aws_get_user_id(profile_dict, user_agent):
+def aws_get_user_id():
+    body = request.get_json()
+    profile_dict = body['profile_dict']
+    user_agent = body['user_agent']
+
     region = profile_dict['aws_region']
     access_key_id = profile_dict['aws_access_key']
     secret_key = profile_dict['aws_secret_key']
@@ -47,3 +44,4 @@ def aws_get_user_id(profile_dict, user_agent):
 
     except Exception as e:
         return {"error": str(e)}
+

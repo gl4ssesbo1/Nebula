@@ -1,14 +1,16 @@
-import flask_mongoengine
-from flask import Blueprint, request, Response
-from core.database.models import Cosmonaut
-import sys
-from flask import Response, request
-from flask_jwt_extended import create_access_token, jwt_required
 import datetime
 import json
+
+import flask_mongoengine
+from core.database.models import Cosmonaut
+from flask import Blueprint
+from flask import request
+from flask_jwt_extended import create_access_token, jwt_required
 from termcolor import colored
 
 cosmonaut_blueprint = Blueprint('cosmonauts', __name__)
+
+
 
 @cosmonaut_blueprint.route('/api/latest/cosmonauts', methods=['GET'])
 @jwt_required()
@@ -30,7 +32,7 @@ def get_cosmonaut():
         return {'error': 'Permission Denied: Email or password is incorrect'}, 401
 
     expires = datetime.timedelta(days=7)
-    access_token = create_access_token(identity=str(cosmonaut.id), expires_delta=expires)
+    access_token = create_access_token(identity=str(cosmonaut.cosmonaut_name), expires_delta=expires)
     print(colored(f"[*] User {cosmonaut['cosmonaut_name']} authenticated successfully at {str(datetime.datetime.now())}", "blue"))
 
     return {'token': access_token}, 200
@@ -51,6 +53,26 @@ def set_cosmonaut():
         return {"message": "User '{}' was created!".format(body['cosmonaut_name'])}, 200
     except Exception as e:
         return {"error":str(e)}, 500
+
+@cosmonaut_blueprint.route('/api/latest/cosmonauts/password', methods=['PATCH'])
+@jwt_required()
+def reset_cosmonaut_password():
+
+
+    try:
+        body = request.get_json()
+        cosmonaut_name = body['cosmonaut_name']
+        cosmonaut = Cosmonaut.objects.get(cosmonaut_name=body.get('cosmonaut_name'))
+        cosmonaut.modify(cosmonaut_pass=body.get('cosmonaut_pass'))
+        cosmonaut.hash_password()
+        cosmonaut.save()
+
+        return {"message": "User '{}' was updated!".format(cosmonaut_name)}, 200
+
+    except flask_mongoengine.DoesNotExist:
+        return {"error": "User does not exist"}, 404
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 @cosmonaut_blueprint.route('/api/latest/cosmonauts', methods=['PATCH'])
 @jwt_required()
@@ -77,6 +99,7 @@ def delete_cosmonaut():
         body = request.get_json()
         cosmonaut_name = body['cosmonaut_name']
         Cosmonaut.objects().get(cosmonaut_name=cosmonaut_name).delete()
+        print(colored("User '{}' was deleted!".format(cosmonaut_name), "magenta"))
         return {"message": "User '{}' was deleted!".format(cosmonaut_name)}, 200
     except flask_mongoengine.DoesNotExist:
         return {"error": "User does not exist"}, 404

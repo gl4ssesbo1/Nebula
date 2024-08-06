@@ -1,12 +1,10 @@
-from flask import Blueprint, request, Response
-from core.database.models import AWSCredentials
-import sys
-from flask import Response, request
-from flask_jwt_extended import create_access_token, jwt_required
-import datetime
 import flask_mongoengine
+from core.database.models import AWSCredentials
 from core.enum_user_privs.getuid_aws import getuid
 from core.enum_user_privs.getuid_aws_ssmrole import getuidssmrole
+from flask import Blueprint
+from flask import Response, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 awscredentials_blueprint = Blueprint('awscredentials', __name__)
 
@@ -25,7 +23,7 @@ def getuid_aws_creds():
 
         awscredentials = AWSCredentials.objects.get(aws_profile_name=body.get('aws_profile_name'))
 
-        return {'UserName': getuid(awscredentials, workspace)}, 200
+        return {"Arn": getuid(awscredentials, workspace)}, 200
     except flask_mongoengine.DoesNotExist:
         return {'error': "Credentials do not exist"}, 404
 

@@ -24,7 +24,21 @@ variables = {
         "description":"Another variable to set"
 	}
 }
-description = "Description of your Module"
+description = "The module will run "
+
+COSTFILTER = {
+  "AND": [
+      {
+  "Dimensions": {
+    "Key": "REGION",
+    "Values": ["us-east-1, eu-west-3"]
+  }},
+      {"Dimensions": {
+    "Key": "SERVICE",
+    "Values": ["iam"]
+    }}
+]
+}
 
 # The aws command is the command used for describe-launch-templates. You can change to yours. Please set region and profile as {}
 aws_command = "aws ec2 describe-launch-templates --region {} --profile {}"

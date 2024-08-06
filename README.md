@@ -25,36 +25,69 @@ I started writing it while I was reading "Hands-On AWS Penetration Testing with 
 ## Installation
 ### Server
 Nebula is coded in python3.11. It uses boto3 library to access AWS. 
-To install, run ```install.sh``` script, which will get the mongo image, create teamserver image and install client's libraries on a venv (docker does not work for client due to TTY issues)
+To install, just go to the ```teamserver``` directory and build the container:
 ```
-$ ./install.sh
- ---------------------------------------------------------
-               Installing Nebula
- ---------------------------------------------------------
- [*] Pulling mongo image
-Using default tag: latest
-latest: Pulling from library/mongo
-Digest: sha256:bd38dc3d2895c7434b9b75c86525642efe3d65e4c6aadfe397486d7cc89406f0
-Status: Image is up to date for mongo:latest
-docker.io/library/mongo:latest
- [*] Pulled Docker Image
- ---------------------------------------------------------
- [*] Building Nebula Teamserver
-DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
-            Install the buildx component to build images with BuildKit:
-            https://docs.docker.com/go/buildx/
+$ docker build -t nebula-teamserver .
 ```
+Then, just run it using docker:
+```
+$ docker run -it nebula-teamserver -dH <database host> -du <database user> -dp <database password> -dn <database name> --p <teamserver password>
+------------------------------------------------------------
+           _   _      _           _
+          | \ | |    | |         | |
+          |  \| | ___| |__  _   _| | __ _
+          | . ` |/ _ \ '_ \| | | | |/ _` |
+  _______ | |\  |  __/ |_) | |_| | | (_| |
+ |__   __||_| \_|\___|_.__/ \__,_|_|\__,_|
+    | | ___  __ _ _ __ ___  ___  ___ _ ____   _____ _ __
+    | |/ _ \/ _` | '_ ` _ \/ __|/ _ \ '__\ \ / / _ \ '__|
+    | |  __/ (_| | | | | | \__ \  __/ |   \ V /  __/ |
+    |_|\___|\__,_|_| |_| |_|___/\___|_|    \_/ \___|_|
+-------------------------------------------------------------
+37 aws          0 gcp           4 azure         0 office365
+0 docker        0 kubernetes    4 misc          11 azuread
+4 digitalocean
+-------------------------------------------------------------
+60 modules      6 cleanup               0 detection
+19 enum         5 exploit               2 persistence
+1 listeners     0 lateral movement      7 detection bypass
+7 privesc       10 reconnaissance       2 stager        0 postexploitation
+1 misc
 
+[*] Port is busy. Is a MongoDB instance running there? [y/N] y
+------------------------------------------------------------
+[*] JWT Secret Key set to: '<secret value>'
+[*] Database Server set to: '<db host>:<db port>'
+[*] Database set to: '<db name>'
+[*] Teamserver IP address is '<teamserver host>'
+[*] User 'cosmonaut' was created!
+[*] API Server set to: '<api host>:<api port>'
+------------------------------------------------------------
+```
 ### Client
-Same with client **client**. You will need to create another venv outside of the scope of the teamserver one. Create the venv and install the libraries:
+Same with client **client**. Just go to the ```client``` directory and build the container:
 ```
-cd client
-python3 -m venv ./venv
-source venv/bin/activate
-python3 -m pip install -r requirements.txt 
-nebula -w <database name> --password <password> -ah <server host>
+$ docker build -t nebula-client .
 ```
+Then, just run it using docker:
+```
+$ docker run -it nebula-client -ah <api host> -p <teamserver password> -b
+-------------------------------------------------------------
+37 aws          0 gcp           4 azure         0 office365
+0 docker        0 kubernetes    4 misc          13 azuread
+4 digitalocean
+-------------------------------------------------------------
+62 modules      6 cleanup               0 detection
+19 enum         5 exploit               2 persistence
+1 listeners     0 lateral movement      7 detection bypass
+7 privesc       10 reconnaissance       2 stager
+1 misc          2 initialaccess         0 postexploitation
+-------------------------------------------------------------
 
+[*] Importing sessions found on ~/.aws
+[*] No sessions found on ~/.aws
+()()(Nebula) >>>
+```
 ## Usage
 ```
 

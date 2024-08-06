@@ -9,6 +9,7 @@ from mongoengine import DoesNotExist
 
 from core.database.models import S3C2Listener
 import core.module.stager.aws_s3_c2_terraform
+import core.module.stager.aws_s3_c2_golang
 import requests
 
 author = {
@@ -57,9 +58,19 @@ variables = {
         "description": "The filename where the command is hosted. By default is 'index.html'"
     },
     "STAGER-TYPE": {
-        "value": "terraform",
+        "value": "golang",
         "required": "true",
         "description": "The filename where the command is hosted. By default is 'terraform'"
+    },
+    "GOOS": {
+        "value": "linux",
+        "required": "true",
+        "description": "The type of OS to execute the binary in. Only used for golang stager."
+    },
+    "GOARCH": {
+        "value": "amd64",
+        "required": "true",
+        "description": "The architecture to execute the binary at. Only used for golang stager."
     }
 }
 description = "Based on the book How to Hack like a Ghost, where an S3 bucket is used as a C2 Server."
@@ -67,7 +78,8 @@ description = "Based on the book How to Hack like a Ghost, where an S3 bucket is
 aws_command = "None"
 
 stagers = [
-    "terraform"
+    "terraform",
+    "golang"
 ]
 
 calls = [
@@ -93,6 +105,9 @@ def exploit(profile, workspace):
     stager_access_key = variables['STAGER-ACCESS-KEY']['value']
     stager_secret_key = variables['STAGER-SECRET-KEY']['value']
     stager_type = variables['STAGER-TYPE']['value']
+
+    goos = variables['GOOS']['value']
+    goarch = variables['GOARCH']['value']
 
     if not stager_type in stagers:
         return {"error": f"{stager_type} is not a valid stager type for this module. Look at stagers list."}
@@ -169,25 +184,58 @@ def exploit(profile, workspace):
             except Exception as e:
                 return {"error": "Error from module: {}".format(str(e))}, 500
 
-            core.module.stager.aws_s3_c2_terraform.variables = {
-                "SERVICE": {
-                    "value": "none",
-                    "required": "true",
-                    "description": "The service that will be used to run the module. It cannot be changed."
-                },
-                "LISTENER-BUCKET-NAME": {
-                    "value": bucket,
-                    "required": "true",
-                    "description": "The listener bucket name to use as C2."
-                },
-                "OUTPUT-FILE-NAME": {
-                    "value": outputkey,
-                    "required": "true",
-                    "description": "The name of the output file to be dumped inside ./stager directory."
+            if stager_type == "terraform":
+                core.module.stager.aws_s3_c2_terraform.variables = {
+                    "SERVICE": {
+                        "value": "none",
+                        "required": "true",
+                        "description": "The service that will be used to run the module. It cannot be changed."
+                    },
+                    "LISTENER-BUCKET-NAME": {
+                        "value": bucket,
+                        "required": "true",
+                        "description": "The listener bucket name to use as C2."
+                    },
+                    "OUTPUT-FILE-NAME": {
+                        "value": outputkey,
+                        "required": "true",
+                        "description": "The name of the output file to be dumped inside ./stager directory."
+                    }
                 }
-            }
-            print(outputkey)
-            stagerData = core.module.stager.aws_s3_c2_terraform.exploit(None)
+
+                stagerData = core.module.stager.aws_s3_c2_terraform.exploit(None)
+
+            else: #elif stager_type == "golang":
+                core.module.stager.aws_s3_c2_terraform.variables = {
+                    "SERVICE": {
+                        "value": "none",
+                        "required": "true",
+                        "description": "The service that will be used to run the module. It cannot be changed."
+                    },
+                    "LISTENER-BUCKET-NAME": {
+                        "value": bucket,
+                        "required": "true",
+                        "description": "The listener bucket name to use as C2."
+                    },
+                    "OUTPUT-FILE-NAME": {
+                        "value": outputkey,
+                        "required": "true",
+                        "description": "The name of the output file to be dumped inside ./stager directory."
+                    },
+                    "GOOS": {
+                        "value": goos,
+                        "required": "true",
+                        "description": "The type of OS to execute the binary in."
+                    },
+                    "GOARCH": {
+                        "value": goarch,
+                        "required": "true",
+                        "description": "The architecture to execute the binary at."
+                    }
+                }
+
+                stagerData = core.module.stager.aws_s3_c2_golang.exploit(None)
+            print(stagerData)
             if "error" in stagerData:
                 return stagerData
             else:

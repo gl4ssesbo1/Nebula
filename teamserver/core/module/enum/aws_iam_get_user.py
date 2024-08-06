@@ -23,7 +23,7 @@ variables = {
         "description":"The IAM User to check."
 	}
 }
-description = "Disables a GD Detector on a specific region. Mind you, many security systems detect this behaviour."
+description = "Just get a user's info. This was used as a demo on BlackHat Arsenal 2024 and DEF CON Demo Labs 2024"
 
 aws_command = "aws iam get-user --user-name <user>  --region <region> --profile <profile>"
 
@@ -67,9 +67,3 @@ def exploit(all_sessions, cred_prof, useragent, web_proxies, workspace):
 
 	except Exception as e:
 		return {"error": str(e)}
-
-
-
-
-
-

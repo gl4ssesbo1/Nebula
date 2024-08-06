@@ -33,7 +33,7 @@ variables = {
         "description": "The name of the output file to be dumped inside ./stager directory."
     }
 }
-description = "The TCP Reverse Shell that is used by listeners/aws_python_tcp_listener"
+description = "A Terraform stager for AWS S3 listener"
 
 aws_command = "None"
 

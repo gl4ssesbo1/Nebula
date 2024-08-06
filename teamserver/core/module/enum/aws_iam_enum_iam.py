@@ -82,10 +82,10 @@ def exploit(profile, workspace):
 		}
 		if filter is None:
 			result = profile.get_account_authorization_details()
-			iamData['UserDetailList'].extend(result['UserDetailList'])
-			iamData['GroupDetailList'].extend(result['GroupDetailList'])
-			iamData['RoleDetailList'].extend(result['RoleDetailList'])
-			iamData['Policies'].extend(result['Policies'])
+			iamData['UserDetailList'] = result['UserDetailList']
+			iamData['GroupDetailList'] = result['GroupDetailList']
+			iamData['RoleDetailList'] = result['RoleDetailList']
+			iamData['Policies'] = result['Policies']
 
 			while result['IsTruncated']:
 				result = profile.get_account_authorization_details(
@@ -99,8 +99,7 @@ def exploit(profile, workspace):
 			saveUserData(iamData)
 			saveGroupData(iamData)
 			saveRoleData(iamData)
-			saveLocalPolicyData(iamData)
-			saveAWSPolicyData(iamData)
+			savePolicyData(iamData)
 
 		else:
 			args = {
@@ -138,10 +137,10 @@ def exploit(profile, workspace):
 				saveRoleData(iamData)
 
 			elif resourceType == "LOCALPOLICIES":
-				saveLocalPolicyData(iamData)
+				savePolicyData(iamData)
 
 			elif resourceType == "AWSPOLICIES":
-				saveAWSPolicyData(iamData)
+				savePolicyData(iamData)
 
 			return {"ResourceType": {"ResourceType": resourceType, iamDataFilter: iamData[iamDataFilter]}}
 
@@ -192,7 +191,7 @@ def saveGroupData(iamData):
 			database_data = {
 				"aws_groupname": group['GroupName'],
 				"aws_group_arn": group['Arn'],
-				"aws_group_id": group['UserId'],
+				"aws_group_id": group['GroupId'],
 				"aws_group_path": group['Path'],
 				"aws_group_create_date": group['CreateDate'],
 			}
@@ -201,7 +200,7 @@ def saveGroupData(iamData):
 				database_data["aws_group_attached_policies"] = group['AttachedManagedPolicies']
 
 			if "GroupPolicyList" in group:
-				database_data["aws_group_policies"] = group['UserPolicyList']
+				database_data["aws_group_policies"] = group['GroupPolicyList']
 
 			if "Users" in group:
 				database_data["aws_group_users"] = group['Users']
@@ -221,123 +220,106 @@ def saveGroupData(iamData):
 				return {"error": "Error from module: {}".format(str(e))}, 500
 
 def saveRoleData(iamData):
-	if len(iamData['UserDetailList']) > 0:
-		for user in iamData['UserDetailList']:
+	if len(iamData['RoleDetailList']) > 0:
+		for role in iamData['RoleDetailList']:
 			database_data = {
-				"aws_rolename": user['UserName'],
-				"aws_user_arn": user['Arn'],
-				"aws_user_id": user['UserId'],
-				"aws_user_path": user['Path'],
-				"aws_user_create_date": user['CreateDate'],
-				"aws_account_id": user['Arn'].split(":")[4]
+				"aws_rolename": role['RoleName'],
+				"aws_role_arn": role['Arn'],
+				"aws_role_id": role['RoleId'],
+				"aws_role_path": role['Path'],
+				"aws_role_create_date": role['CreateDate'],
+				"aws_role_account_id": role['Arn'].split(":")[4]
 			}
 
-			if "AttachedManagedPolicies" in user:
-				database_data["aws_user_attached_policies"] = user['AttachedManagedPolicies']
+			if "AttachedManagedPolicies" in role:
+				database_data["aws_role_attached_policies"] = role['AttachedManagedPolicies']
 
-			if "UserPolicyList" in user:
-				database_data["aws_user_policies"] = user['UserPolicyList']
+			if "RolePolicyList" in role:
+				database_data["aws_role_policies"] = role['RolePolicyList']
 
-			if "GroupList" in user:
-				database_data["aws_user_groups"] = user['GroupList']
+			if "AssumeRolePolicyDocument" in role:
+				database_data['aws_role_assume_role_policy'] = role['AssumeRolePolicyDocument']
 
-			if "Tags" in user:
-				database_data["aws_user_tags"] = user['Tags']
+			if "Tags" in role:
+				database_data["aws_role_tags"] = role['Tags']
 
 			try:
-				aws_user = AWSUsers.objects.get(aws_username=user['UserName'])
-				aws_user.modify(**database_data)
-				aws_user.save()
+				aws_role = AWSRoles.objects.get(aws_rolename=role['RoleName'])
+				aws_role.modify(**database_data)
+				aws_role.save()
 
 			except DoesNotExist:
-				AWSUsers(**database_data).save()
+				AWSRoles(**database_data).save()
 
 			except Exception as e:
 				return {"error": "Error from module: {}".format(str(e))}, 500
 
-def saveAWSPolicyData(iamData):
-	if len(iamData['UserDetailList']) > 0:
-		for user in iamData['UserDetailList']:
+
+def savePolicyData(iamData):
+	if len(iamData['Policies']) > 0:
+		for policy in iamData['Policies']:
 			database_data = {
-				"aws_username": user['UserName'],
-				"aws_user_arn": user['Arn'],
-				"aws_user_id": user['UserId'],
-				"aws_user_path": user['Path'],
-				"aws_user_create_date": user['CreateDate'],
-				"aws_account_id": user['Arn'].split(":")[4]
+				"aws_policy_name": policy['PolicyName'],
+				"aws_policy_arn": policy['Arn'],
+				"aws_policy_id": policy['PolicyId'],
+				"aws_policy_path": policy['Path'],
+				"aws_policy_create_date": policy['CreateDate'],
+				"aws_policy_update_date": policy['UpdateDate']
 			}
 
-			if "AttachedManagedPolicies" in user:
-				database_data["aws_user_attached_policies"] = user['AttachedManagedPolicies']
+			if "DefaultVersionId" in policy:
+				database_data["aws_policy_default_version"] = policy['DefaultVersionId']
 
-			if "UserPolicyList" in user:
-				database_data["aws_user_policies"] = user['UserPolicyList']
+			if policy['Arn'].split(":")[4] == "aws":
+				database_data["aws_policy_scope"] = "AWS"
+			else:
+				database_data["aws_policy_scope"] = "Local"
 
-			if "GroupList" in user:
-				database_data["aws_user_groups"] = user['GroupList']
+			if "PermissionsBoundaryUsageCount" in policy:
+				database_data["aws_policy_permission_boundary_usage_count"] = policy['PermissionsBoundaryUsageCount']
 
-			if "Tags" in user:
-				database_data["aws_user_tags"] = user['Tags']
+			if "AttachmentCount" in policy:
+				database_data["aws_policy_attachment_count"] = policy['AttachmentCount']
 
-			try:
-				aws_user = AWSUsers.objects.get(aws_username=user['UserName'])
-				aws_user.modify(**database_data)
-				aws_user.save()
+			if "PolicyVersionList" in policy:
+				database_data["aws_policy_documents"] = policy['PolicyVersionList']
 
-			except DoesNotExist:
-				AWSUsers(**database_data).save()
-
-			except Exception as e:
-				return {"error": "Error from module: {}".format(str(e))}, 500
-
-def saveLocalPolicyData(iamData):
-	if len(iamData['UserDetailList']) > 0:
-		for user in iamData['UserDetailList']:
-			database_data = {
-				"aws_username": user['UserName'],
-				"aws_user_arn": user['Arn'],
-				"aws_user_id": user['UserId'],
-				"aws_user_path": user['Path'],
-				"aws_user_create_date": user['CreateDate'],
-				"aws_account_id": user['Arn'].split(":")[4]
-			}
-
-			if "AttachedManagedPolicies" in user:
-				database_data["aws_user_attached_policies"] = user['AttachedManagedPolicies']
-
-			if "UserPolicyList" in user:
-				database_data["aws_user_policies"] = user['UserPolicyList']
-
-			if "GroupList" in user:
-				database_data["aws_user_groups"] = user['GroupList']
-
-			if "Tags" in user:
-				database_data["aws_user_tags"] = user['Tags']
+			if "IsAttachable" in policy:
+				database_data["aws_policy_is_attachable"] = policy['IsAttachable']
 
 			try:
-				aws_user = AWSUsers.objects.get(aws_username=user['UserName'])
-				aws_user.modify(**database_data)
-				aws_user.save()
+				aws_policy = AWSPolicies.objects.get(aws_policy_name=policy['PolicyName'])
+				aws_policy.modify(**database_data)
+				aws_policy.save()
 
 			except DoesNotExist:
-				AWSUsers(**database_data).save()
+				AWSPolicies(**database_data).save()
 
 			except Exception as e:
 				return {"error": "Error from module: {}".format(str(e))}, 500
 
 def otherGetUsers(profile, resourceType):
+	iamData = []
+	userinfo = {}
 	try:
-		iamData = profile.list_users()['Users']
+		userlist = profile.list_users()['Users']
 
 	except Exception as e:
 		return {"error": f"Error listing IAM Resources with error code: {str(e)}."}
 
-	for user in iamData:
+	for user in userlist:
+		try:
+			userinfo = profile.get_user(
+				User=user['UserName']
+			)['User']
+
+		except Exception as e:
+			pass
 		try:
 			userGroups = profile.list_groups_for_user(
 				User=user['UserName']
 			)['Groups']
-			user['Groups'] = userGroups
+			userinfo['Groups'] = userGroups
 
 		except Exception as e:
 			pass
@@ -346,7 +328,7 @@ def otherGetUsers(profile, resourceType):
 			userInlinePolicies = profile.list_user_policies(
 				User=user['UserName']
 			)['PolicyNames']
-			user['InlinePolicies'] = userInlinePolicies
+			userinfo['UserPolicyList'] = userInlinePolicies
 
 		except Exception as e:
 			pass
@@ -355,26 +337,39 @@ def otherGetUsers(profile, resourceType):
 			userAttachedPolicies = profile.list_attached_user_policies(
 				User=user['UserName']
 			)['AttachedPolicies']
-			user['AttachedPolicies'] = userAttachedPolicies
+			userinfo['AttachedPolicies'] = userAttachedPolicies
 
 		except Exception as e:
 			pass
 
+		iamData.append(userinfo)
+
 	return {"ResourceType": {"ResourceType": resourceType, "UserDetailList": iamData}}
 
 def otherGetGroups(profile, resourceType):
+	groupInfo = {}
+	iamData = []
+
 	try:
-		iamData = profile.list_roles()['Groups']
+		groupList = profile.list_groups()['Groups']
 
 	except Exception as e:
 		return {"error": f"Error listing IAM Resources with error code: {str(e)}."}
 
-	for group in iamData:
+	for group in groupList:
 		try:
 			groupInfo = profile.get_group(
 				GroupName=group['GroupName']
 			)
-			group['Users'] = groupInfo['Users']
+
+		except Exception as e:
+			pass
+
+		try:
+			groupUsers = profile.list_group_users(
+				GroupName=group['GroupName']
+			)
+			groupInfo['Users'] = groupUsers
 
 		except Exception as e:
 			pass
@@ -383,7 +378,7 @@ def otherGetGroups(profile, resourceType):
 			groupPolicies = profile.list_group_policies(
 				GroupName=group['GroupName']
 			)['PolicyNames']
-			group['AttachedPolicies'] = groupPolicies
+			groupInfo['AttachedPolicies'] = groupPolicies
 
 		except Exception as e:
 			pass
@@ -392,10 +387,12 @@ def otherGetGroups(profile, resourceType):
 			groupAttachedPolicies = profile.list_attached_group_policies(
 				GroupName=group['GroupName']
 			)['AttachedPolicies']
-			group['AttachedPolicies'] = groupAttachedPolicies
+			groupInfo['AttachedPolicies'] = groupAttachedPolicies
 
 		except Exception as e:
 			pass
+
+		iamData.append(groupInfo)
 
 	return {"ResourceType": {"ResourceType": resourceType, "GroupDetailList": iamData}}
 
@@ -428,17 +425,48 @@ def otherGetRoles(profile, resourceType):
 	return {"ResourceType": {"ResourceType": resourceType, "RoleDetailList": iamData}}
 
 def otherGetLocalPolicies(profile, resourceType):
+	iamData = []
+	policyInfo = {}
 	try:
-		iamData = profile.list_policies(Scope="Local")['Policies']
+		policyList = profile.list_policies(Scope="Local")['Policies']
+		for policy in policyList:
+			try:
+				policyInfo = profile.get_policy(PolicyArn=policy['Arn'])["Policy"]
+			except Exception as e:
+				pass
+
+			try:
+				policyInfo = profile.get_policy_version(PolicyArn=policy['Arn'], VersionId=policy['DefaultVersionId'])["Policy"]
+			except Exception as e:
+				pass
+
+			iamData.append(policyInfo)
+
 		return {"ResourceType": {"ResourceType": resourceType, "LocalPolicies": iamData}}
 
 	except Exception as e:
 		return {"error": f"Error listing IAM Resources with error code: {str(e)}."}
 
 def otherGetAWSPolicies(profile, resourceType):
+	iamData = []
+	policyInfo = {}
 	try:
-		iamData = profile.list_policies(Scope="AWS")['Policies']
-		return {"ResourceType": {"ResourceType": resourceType, "AWSPolicies": iamData}}
+		policyList = profile.list_policies(Scope="AWS")['Policies']
+		for policy in policyList:
+			try:
+				policyInfo = profile.get_policy(PolicyArn=policy['Arn'])["Policy"]
+			except Exception as e:
+				pass
+
+			try:
+				policyInfo = profile.get_policy_version(PolicyArn=policy['Arn'], VersionId=policy['DefaultVersionId'])[
+					"Policy"]
+			except Exception as e:
+				pass
+
+			iamData.append(policyInfo)
+
+		return {"ResourceType": {"ResourceType": resourceType, "LocalPolicies": iamData}}
 
 	except Exception as e:
 		return {"error": f"Error listing IAM Resources with error code: {str(e)}."}

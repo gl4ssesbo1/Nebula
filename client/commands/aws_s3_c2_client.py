@@ -32,7 +32,6 @@ def getparticlelist(profile, bucket_name, particles):
 def getsendcommand(bucket_name, particle_name, command_key, output_key, command, s3Client, kmskeyid, particles):
     testparticle = 0
     try:
-        #s3Client = boto3.Session(profile_name=profile).client("s3")
         bucketObjectsReq = s3Client.list_objects_v2(Bucket=bucket_name)
 
         if 'Contents' in bucketObjectsReq:
@@ -41,6 +40,7 @@ def getsendcommand(bucket_name, particle_name, command_key, output_key, command,
             for object in bucketObjects:
                 if object['Key'] == f"{particle_name}/{output_key}":
                     objcheck = 1
+                    '''
                     try:
                         print(s3Client.get_object(
                             Bucket=bucket_name,
@@ -50,6 +50,7 @@ def getsendcommand(bucket_name, particle_name, command_key, output_key, command,
                         )['Body'].read().decode())
                     except Exception as e:
                         pass
+                    '''
                     s3Client.delete_object(
                         Bucket=bucket_name,
                         Key=f"{particle_name}/{output_key}",
@@ -221,7 +222,7 @@ def getsendcommand(bucket_name, particle_name, command_key, output_key, command,
                 except Exception as e:
                     time.sleep(5)
                     testparticle += 5
-                    if testparticle == 30:
+                    if testparticle == 90:
                         deleteparticle(s3Client, particle_name, bucket_name, command_key, output_key, particles)
                         particle_name = ""
                         break

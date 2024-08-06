@@ -58,3 +58,4 @@ websocket_server
 adal
 msal
 crtsh
+flask_rbac

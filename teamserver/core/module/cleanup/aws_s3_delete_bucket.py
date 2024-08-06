@@ -26,7 +26,7 @@ variables = {
     }
 }
 
-description = "Gets the name of a and deletes it."
+description = "Gets the name of a bucket and deletes it. The bucket policy should allow it."
 
 aws_command = "aws s3 delete-bucket --region {} --profile {}"
 

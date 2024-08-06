@@ -1,42 +1,38 @@
 import json
-import pathlib
-import re
-import sys
-import os
-from termcolor import colored
-#import termcolor
-from flask import Flask
-from waitress import serve
-from core.database.db import initialize_db
-from pymongo import ReadPreference
 import multiprocessing
+import os
+import pathlib
+import random
+import re
+import socket
+import string
+from getpass import getpass
+import botocore
+import argparse
+import docker
+import mongoengine
+# import termcolor
+from flask import Flask
+from flask_bcrypt import Bcrypt
+from flask_bcrypt import generate_password_hash
+from flask_jwt_extended import JWTManager
+from termcolor import colored
+from waitress import serve
 
-from core.models.Listeners import listener_blueprint
-from core.models.Cosmonaut import cosmonaut_blueprint
-from core.models.Modules import module_blueprint
+from core.Listeners.WebSocket.server import start_websocket_listener
+from core.database.db import initialize_db
+from core.database.models import Cosmonaut
+from core.database.models import WebsocketListener
 from core.models.AWSCredentials import awscredentials_blueprint
 from core.models.AWSIAM import awsusers_blueprint
 from core.models.AZURECredentials import azurecredentials_blueprint
+from core.models.ClientCommands import clientcommands_blueprint
+from core.models.Cosmonaut import cosmonaut_blueprint
 from core.models.DigitalOceanCredentials import digitaloceancredentials_blueprint
 from core.models.Domains import domains_blueprint
-from core.models.ClientCommands import clientcommands_blueprint
-
-from getpass import getpass
-
-import argparse
-import docker
-import socket
-from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager
-from core.database.models import Cosmonaut
-import string, random
-import mongoengine
-from flask_bcrypt import generate_password_hash
-
-from core.Listeners.WebSocket.server import WebsocketServer
-from core.Listeners.WebSocket.server import start_websocket_listener
-
-from core.database.models import WebsocketListener
+from core.models.Listeners import listener_blueprint
+from core.models.Modules import module_blueprint
+from core.models.AWSS3Buckets import awsbuckets_blueprint
 
 parser = argparse.ArgumentParser(description='------ Nebula Teamserver Options ------')
 #parser.add_argument('-ah', '--apiHost', type=str, help='The API Server Host. (Default: 127.0.0.1)', default='127.0.0.1')
@@ -52,8 +48,6 @@ args = parser.parse_args()
 
 IPv4_REGEX = "^[0-9]{1,3}[.]{1}[0-9]{1,3}[.]{1}[0-9]{1,3}[.]{1}[0-9]{1,3}$"
 IPv6_REGEX = "^([0-9a-fA-F]{1,4}[:]{0,2}){1,8}$"
-
-#if args.config_file is None:
 
 if not args.databaseName:
     print("Provide DB Name using -dn (database name)")
@@ -209,7 +203,7 @@ app.config['JWT_SECRET_KEY'] = jwt_token
 #}
 
 
-if os.environ.get("VIRTUAL_ENV"):
+"""if os.environ.get("VIRTUAL_ENV"):
     sessionfile = f"{os.environ.get('VIRTUAL_ENV')}/lib/python3.10/site-packages/botocore/session.py"
     useragentfile = f"{os.environ.get('VIRTUAL_ENV')}/lib/python3.10/site-packages/botocore/.user-agent"
 else:
@@ -219,12 +213,16 @@ else:
     else:
         sessionfile = f"/usr/local/lib/python3.10/site-packages/botocore/session.py"
         useragentfile = f"/usr/local/lib/python3.10/site-packages/botocore/.user-agent"
+"""
+
+sessionfile = f"{botocore.__path__[0]}/session.py"
+useragentfile = f"{botocore.__path__[0]}/.user-agent"
 
 with open(sessionfile, "r") as botocoresessionfile:
     botocorecheck = 0
     botocoresessionfilelines = botocoresessionfile.readlines()
     for line in botocoresessionfilelines:
-        if 'lib/python3.10/site-packages/botocore/.user-agent' in line:
+        if 'site-packages/botocore/.user-agent' in line:
             botocorecheck = 1
 
     if botocorecheck == 0:
@@ -382,6 +380,7 @@ try:
     app.register_blueprint(digitaloceancredentials_blueprint)
     app.register_blueprint(domains_blueprint)
     app.register_blueprint(clientcommands_blueprint)
+    app.register_blueprint(awsbuckets_blueprint)
 
 except SystemExit:
     exit()
