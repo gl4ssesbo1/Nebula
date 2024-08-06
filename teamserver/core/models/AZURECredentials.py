@@ -5,7 +5,7 @@ from flask import Response, request
 from flask_jwt_extended import create_access_token, jwt_required
 import datetime
 import flask_mongoengine
-from core.enum_user_privs.getuid_aws import getuid
+from core.enum_user_privs.getuid_azuread import getuid
 
 azurecredentials_blueprint = Blueprint('azurecredentials', __name__)
 
@@ -20,15 +20,14 @@ def list_azurecredentials():
 @jwt_required()
 def getuid_aws_creds():
     body = request.get_json()
+    azurecredentials = body['curr_creds']
     try:
-        workspace = body['workspace']
+        #print(body.get('cred_prof'))
+        #azurecredentials = AZURECredentials.objects.get(azure_creds_name=body.get('cred_prof'))
 
-        azurecredentials = AZURECredentials.objects.get(aws_profile_name=body.get('aws_profile_name'))
-
-        return {'UserName': getuid(azurecredentials, workspace)}, 200
+        return {'userPrincipalName': getuid(azurecredentials)}, 200
     except flask_mongoengine.DoesNotExist:
         return {'error': "Credentials do not exist"}, 404
-
 
 @azurecredentials_blueprint.route('/api/latest/azurecredentials', methods=['POST'])
 @jwt_required()

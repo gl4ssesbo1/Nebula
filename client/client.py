@@ -458,8 +458,19 @@ def update_all_sessions_azure():
         for ass in all_sessions:
             if az_sess['azure_creds_name'] == ass['profile']:
                 test = 0
-                if az_sess['azure_access_token'] == ass['azure_access_token']:
-                    pass
+                if "azure_access_token" in az_sess:
+                    if az_sess['azure_access_token'] == ass['azure_access_token']:
+                        pass
+                    else:
+                        all_sessions.remove(ass)
+                        comms['use']['credentials'][az_sess['azure_creds_name']] = None
+                        comms['remove']['credentials'][az_sess['azure_creds_name']] = None
+                        az_sess['profile'] = az_sess['azure_creds_name']
+                        del (az_sess['azure_creds_name'])
+                        az_sess['provider'] = 'AZURE'
+
+                        all_sessions.append(az_sess)
+                        continue
                 else:
                     all_sessions.remove(ass)
                     comms['use']['credentials'][az_sess['azure_creds_name']] = None
@@ -704,6 +715,7 @@ def main(workspace, particle, module_char):
         command.strip()
 
         while True:
+            update_all_sessions_azure()
             if curr_creds is None:
                 cur_creds_name = ""
             else:
@@ -848,26 +860,15 @@ def main(workspace, particle, module_char):
                 if cred_prof == "":
                     print(colored("[*] Select a set of credentials first.", "red"))
                 else:
-                    if len(command.split(" ")) > 1 and command.split(" ")[1] == 'ssmrole':
-                        # all_sessions, cred_prof, useragent, web_proxies
-                        """print(json.dumps({                "aws_all_sessions": all_sessions,
-                                                          "aws_profile_name": cred_prof,
-                                                          "workspace": workspace,
-                                                          "user-agent": useragent,
-                                                          "web_proxies": web_proxies
-                                                      }, indent=4, default=str))"""
-                        getuid_response = json.loads(requests.post("{}/api/latest/awscredentials/getuid/ssmrole".format(apihost),
-                                                      headers={
-                                                          "Authorization": "Bearer {}".format(jwt_token)
-                                                      },
-                                                      json={
-                                                          "aws_all_sessions": all_sessions,
-                                                          "aws_profile_name": cred_prof,
-                                                          "workspace": workspace,
-                                                          "user-agent": useragent,
-                                                          "web_proxies": web_proxies
-                                                      }).text)
-
+                    if curr_creds['provider'] == "AZURE":
+                        getuid_response = json.loads(
+                            requests.post("{}/api/latest/azurecredentials/getuid".format(apihost),
+                                          headers={
+                                              "Authorization": "Bearer {}".format(jwt_token)
+                                          },
+                                          json={
+                                              "curr_creds": curr_creds,
+                                          }).text)
                         from pygments import highlight
                         from pygments.lexers import JsonLexer
                         from pygments.formatters import TerminalFormatter
@@ -919,64 +920,129 @@ def main(workspace, particle, module_char):
                                     "------------------------------------------------------------------\n",
                                     "yellow", attrs=['bold'])
                         print(output)
-                    else:
-                        getuid_response = json.loads(requests.post("{}/api/latest/awscredentials/getuid".format(apihost),
-                                                      headers={
-                                                          "Authorization": "Bearer {}".format(jwt_token)
-                                                      },
-                                                      json={
-                                                          "aws_profile_name": cred_prof,
-                                                          "workspace": workspace
-                                                      }).text)
-                        from pygments import highlight
-                        from pygments.lexers import JsonLexer
-                        from pygments.formatters import TerminalFormatter
+                    elif curr_creds['provider'] == "AWS":
+                        if len(command.split(" ")) > 1 and command.split(" ")[1] == 'ssmrole':
+                            getuid_response = json.loads(requests.post("{}/api/latest/awscredentials/getuid/ssmrole".format(apihost),
+                                                          headers={
+                                                              "Authorization": "Bearer {}".format(jwt_token)
+                                                          },
+                                                          json={
+                                                              "aws_all_sessions": all_sessions,
+                                                              "aws_profile_name": cred_prof,
+                                                              "workspace": workspace,
+                                                              "user-agent": useragent,
+                                                              "web_proxies": web_proxies
+                                                          }).text)
 
-                        for title_name, json_data in getuid_response.items():
-                            if isinstance(json_data, list):
-                                output += colored("------------------------------------------------------------------\n",
-                                                  "yellow", attrs=['bold'])
-                                for data in json_data:
+                            from pygments import highlight
+                            from pygments.lexers import JsonLexer
+                            from pygments.formatters import TerminalFormatter
+
+                            for title_name, json_data in getuid_response.items():
+                                if isinstance(json_data, list):
                                     output += colored(
-                                        "{}: {}\n".format(title_name, data[title_name]),
+                                        "------------------------------------------------------------------\n",
+                                        "yellow", attrs=['bold'])
+                                    for data in json_data:
+                                        output += colored(
+                                            "{}: {}\n".format(title_name, data[title_name]),
+                                            "yellow", attrs=['bold'])
+                                        output += colored(
+                                            "------------------------------------------------------------------\n",
+                                            "yellow", attrs=['bold'])
+                                        raw_json = json.dumps(data, indent=4)
+                                        output += highlight(
+                                            raw_json,
+                                            JsonLexer(),
+                                            TerminalFormatter()
+                                        )
+
+                                        # Print to console
+
+                                        output += colored(
+                                            "------------------------------------------------------------------\n",
+                                            "yellow",
+                                            attrs=['bold'])
+                                else:
+                                    output += colored(
+                                        "------------------------------------------------------------------\n",
+                                        "yellow", attrs=['bold'])
+                                    output += colored(
+                                        "{}: {}\n".format(title_name, json_data[title_name]),
                                         "yellow", attrs=['bold'])
                                     output += colored(
                                         "------------------------------------------------------------------\n",
                                         "yellow", attrs=['bold'])
-                                    raw_json = json.dumps(data, indent=4)
+                                    raw_json = json.dumps(json_data, indent=4)
                                     output += highlight(
                                         raw_json,
                                         JsonLexer(),
                                         TerminalFormatter()
+
                                     )
-
-                                    # Print to console
-
+                                    # TerminalFormatter()
                                     output += colored(
                                         "------------------------------------------------------------------\n",
-                                        "yellow",
-                                        attrs=['bold'])
-                            else:
-                                output += colored("------------------------------------------------------------------\n",
-                                                  "yellow", attrs=['bold'])
-                                output += colored(
-                                    "{}: {}\n".format(title_name, json_data[title_name]),
-                                    "yellow", attrs=['bold'])
-                                output += colored("------------------------------------------------------------------\n",
-                                                  "yellow", attrs=['bold'])
-                                raw_json = json.dumps(json_data, indent=4)
-                                output += highlight(
-                                    raw_json,
-                                    JsonLexer(),
-                                    TerminalFormatter()
-
-                                )
-                                # TerminalFormatter()
-                                output += colored("------------------------------------------------------------------\n",
-                                                  "yellow", attrs=['bold'])
-                            #pipepager(output, cmd='less -FR')
+                                        "yellow", attrs=['bold'])
                             print(output)
-                            output = ""
+                        else:
+                            getuid_response = json.loads(requests.post("{}/api/latest/awscredentials/getuid".format(apihost),
+                                                          headers={
+                                                              "Authorization": "Bearer {}".format(jwt_token)
+                                                          },
+                                                          json={
+                                                              "aws_profile_name": cred_prof,
+                                                              "workspace": workspace
+                                                          }).text)
+                            from pygments import highlight
+                            from pygments.lexers import JsonLexer
+                            from pygments.formatters import TerminalFormatter
+
+                            for title_name, json_data in getuid_response.items():
+                                if isinstance(json_data, list):
+                                    output += colored("------------------------------------------------------------------\n",
+                                                      "yellow", attrs=['bold'])
+                                    for data in json_data:
+                                        output += colored(
+                                            "{}: {}\n".format(title_name, data[title_name]),
+                                            "yellow", attrs=['bold'])
+                                        output += colored(
+                                            "------------------------------------------------------------------\n",
+                                            "yellow", attrs=['bold'])
+                                        raw_json = json.dumps(data, indent=4)
+                                        output += highlight(
+                                            raw_json,
+                                            JsonLexer(),
+                                            TerminalFormatter()
+                                        )
+
+                                        # Print to console
+
+                                        output += colored(
+                                            "------------------------------------------------------------------\n",
+                                            "yellow",
+                                            attrs=['bold'])
+                                else:
+                                    output += colored("------------------------------------------------------------------\n",
+                                                      "yellow", attrs=['bold'])
+                                    output += colored(
+                                        "{}: {}\n".format(title_name, json_data[title_name]),
+                                        "yellow", attrs=['bold'])
+                                    output += colored("------------------------------------------------------------------\n",
+                                                      "yellow", attrs=['bold'])
+                                    raw_json = json.dumps(json_data, indent=4)
+                                    output += highlight(
+                                        raw_json,
+                                        JsonLexer(),
+                                        TerminalFormatter()
+
+                                    )
+                                    # TerminalFormatter()
+                                    output += colored("------------------------------------------------------------------\n",
+                                                      "yellow", attrs=['bold'])
+                                #pipepager(output, cmd='less -FR')
+                                print(output)
+                                output = ""
 
                     """
                     for title_name, json_data in getuid_response.items():
@@ -1127,6 +1193,7 @@ def main(workspace, particle, module_char):
                         ))
                         print(colored("-------------------------------------",
                                       "yellow"))
+                        print(curr_creds)
                         for key, value in curr_creds.items():
                             if key == "secret_key":
                                 print("\t{}: {}".format(
@@ -1368,6 +1435,7 @@ def main(workspace, particle, module_char):
                     else:
                         for cred in all_sessions:
                             c = 0
+                            curr_creds = None
                             if command.split(" ")[2] == cred['profile']:
                                 cred_prof = command.split(" ")[2]
                                 curr_creds = cred
@@ -2373,7 +2441,6 @@ def main(workspace, particle, module_char):
 
                         yon = input("Are credential Service Principal Credentials? [y/N] ")
                         if yon == "y" or yon == "Y":
-                            yon = 'N'
                             tenant_id = input("Tenant ID: ")
                             client_id = input("Client ID: ")
                             yon = input("Are you using Client Secret? [y/N] ")
@@ -2407,37 +2474,37 @@ def main(workspace, particle, module_char):
                                 "azure_password": password
                             }
 
-                            cred_created = json.loads(requests.put("{}/api/latest/azurecredentials".format(apihost),
-                                                                      json=cred_json,
-                                                                      headers={"Authorization": "Bearer {}".format(jwt_token)}
-                                                                      ).text)
+                        cred_created = json.loads(requests.put("{}/api/latest/azurecredentials".format(apihost),
+                                                                  json=cred_json,
+                                                                  headers={"Authorization": "Bearer {}".format(jwt_token)}
+                                                                  ).text)
 
-                            if not "error" in cred_created:
-                                print(colored("[*] Credential '{}' Created.".format(command.split(" ")[2]), "green"))
-                                curr_creds = {
-                                    'provider': "AZURE",
-                                    'profile': "",
-                                    'access_key_id': "",
-                                    'secret_key': "",
-                                    'region': ""
-                                }
-                                curr_creds['provider'] = 'DIGITALOCEAN'
-                                curr_creds['profile'] = set_digitalocean_creds_body["digitalocean_profile_name"]
-                                curr_creds['access_key_id'] = set_digitalocean_creds_body["digitalocean_access_key"]
-                                curr_creds['secret_key'] = set_digitalocean_creds_body["digitalocean_secret_key"]
-                                curr_creds['region'] = set_digitalocean_creds_body["digitalocean_region"]
+                        if not "error" in cred_created:
+                            print(colored("[*] Credential '{}' Created.".format(command.split(" ")[2]), "green"))
+                            curr_creds = {
+                                'provider': "AZURE",
+                                'profile': "",
+                                'access_key_id': "",
+                                'secret_key': "",
+                                'region': ""
+                            }
+                            curr_creds['provider'] = 'DIGITALOCEAN'
+                            curr_creds['profile'] = set_digitalocean_creds_body["digitalocean_profile_name"]
+                            curr_creds['access_key_id'] = set_digitalocean_creds_body["digitalocean_access_key"]
+                            curr_creds['secret_key'] = set_digitalocean_creds_body["digitalocean_secret_key"]
+                            curr_creds['region'] = set_digitalocean_creds_body["digitalocean_region"]
 
-                                print(colored("[*] Credentials set. Use ", "green") + colored("'show credentials' ",
-                                                                                              "blue") + colored(
-                                    "to check them.", "green"))
+                            print(colored("[*] Credentials set. Use ", "green") + colored("'show credentials' ",
+                                                                                          "blue") + colored(
+                                "to check them.", "green"))
 
-                                print(colored("[*] Currect credential profile set to ", "green") + colored(
-                                    "'{}'.".format(cred_prof), "blue") + colored("Use ", "green") + colored(
-                                    "'show current-creds' ", "blue") + colored("to check them.", "green"))
+                            print(colored("[*] Currect credential profile set to ", "green") + colored(
+                                "'{}'.".format(cred_prof), "blue") + colored("Use ", "green") + colored(
+                                "'show current-creds' ", "blue") + colored("to check them.", "green"))
 
 
-                            else:
-                                print(colored("[*] {}".format(cred_created['error']), "red"))
+                        else:
+                            print(colored("[*] {}".format(cred_created['error']), "red"))
 
                         del cred_json
                 elif command.split(" ")[1] == 'do-credentials':
@@ -2536,9 +2603,7 @@ def main(workspace, particle, module_char):
                                 curr_creds = {
                                     'provider': "",
                                     'profile': "",
-                                    'access_key_id': "",
-                                    'secret_key': "",
-                                    'region': ""
+                                    'digitalocean_token': ""
                                 }
 
                                 curr_creds['provider'] = 'DIGITALOCEAN'
