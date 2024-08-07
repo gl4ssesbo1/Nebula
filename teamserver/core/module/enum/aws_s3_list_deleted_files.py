@@ -19,7 +19,7 @@ variables = {
         "required": "true",
         "description": "The service that will be used to run the module. It cannot be changed."
     },
-    "BUCKET-NAMES": {
+    "BUCKET-NAME": {
         "value": "",
         "required": "true",
         "description": "A specific bucket or a list of buckets split by comma."
@@ -37,7 +37,7 @@ aws_command = "aws s3api list-object-versions --bucket <my-bucket> --prefix <pre
 
 def exploit(profile, workspace):
     deleted_files = []
-    bucket = variables["BUCKET-NAMES"]['value']
+    bucket = variables["BUCKET-NAME"]['value']
     return_dict = {
         "Bucket": bucket
     }
@@ -52,13 +52,17 @@ def exploit(profile, workspace):
         if "Versions" in all_versions:
             for version in all_versions['Versions']:
                 if version['Key'] in deleted_files:
-                    all_objects.append({
+                    all_objects = {
                         "Owner": version['Owner']['DisplayName'],
                         "Key": version["Key"],
                         "VersionID": version['VersionId'],
                         "LastModified": str(version['LastModified']),
                         "IsLatest": version['IsLatest']
-                    })
+                    }
+                else:
+                    all_objects = {}
+        else:
+            all_objects = {}
 
         return_dict['DeletedFiles'] = all_objects
 

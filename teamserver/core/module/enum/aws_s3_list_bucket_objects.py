@@ -54,13 +54,16 @@ def exploit(profile, workspace):
         try:
             all_versions = profile.list_objects_v2(Bucket=bucket)
             if "Contents" in all_versions:
-                for key in all_versions['Contents']:
-                    all_objects = {
-                        "Owner": key['Owner']['DisplayName'],
-                        "Key": key["Key"],
-                        "LastModified": str(key['LastModified'])
-                    }
-
+                if len(all_versions['Contents']) > 0:
+                    for key in all_versions['Contents']:
+                        all_objects = {
+                            "Key": key["Key"],
+                            "LastModified": str(key['LastModified'])
+                        }
+                else:
+                    all_objects = {}
+            else:
+                all_objects = {}
             return_dict['Objects'] = all_objects
 
             allbuckets.append(return_dict)

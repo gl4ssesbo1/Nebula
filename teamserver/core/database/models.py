@@ -108,7 +108,7 @@ class AWSGroups(db.Document):
     aws_groupname = db.StringField(required=True, unique=True)
     aws_group_arn = db.StringField(required=True, unique=True)
     aws_group_id = db.StringField(required=True, unique=True)
-    aws_group_path = db.StringField(required=True, unique=True)
+    aws_group_path = db.StringField()
     aws_group_create_date = db.DateTimeField()
     aws_group_attached_policies = db.ListField()
     aws_group_users = db.ListField()
@@ -119,7 +119,7 @@ class AWSGroups(db.Document):
 class AWSRoles(db.Document):
     aws_rolename = db.StringField(required=True, unique=True)
     aws_role_arn = db.StringField(required=True, unique=True)
-    aws_role_path = db.StringField(required=True, unique=True)
+    aws_role_path = db.StringField()
     aws_role_id = db.StringField(required=True, unique=True)
     aws_role_description = db.StringField()
     aws_role_create_date = db.DateTimeField()
