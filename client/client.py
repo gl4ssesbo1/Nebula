@@ -920,6 +920,8 @@ def main(workspace, particle, module_char):
                                     "------------------------------------------------------------------\n",
                                     "yellow", attrs=['bold'])
                         print(output)
+                        output = ""
+
                     elif curr_creds['provider'] == "AWS":
                         if len(command.split(" ")) > 1 and command.split(" ")[1] == 'ssmrole':
                             getuid_response = json.loads(requests.post("{}/api/latest/awscredentials/getuid/ssmrole".format(apihost),
@@ -985,6 +987,7 @@ def main(workspace, particle, module_char):
                                         "------------------------------------------------------------------\n",
                                         "yellow", attrs=['bold'])
                             print(output)
+                            output = ""
                         else:
                             getuid_response = json.loads(requests.post("{}/api/latest/awscredentials/getuid".format(apihost),
                                                           headers={
@@ -1193,7 +1196,7 @@ def main(workspace, particle, module_char):
                         ))
                         print(colored("-------------------------------------",
                                       "yellow"))
-                        print(curr_creds)
+
                         for key, value in curr_creds.items():
                             if key == "secret_key":
                                 print("\t{}: {}".format(
@@ -1697,7 +1700,7 @@ def main(workspace, particle, module_char):
                                                                 os.makedirs(".stagers")
 
                                                             try:
-                                                                if module_output['STAGER-TYPE'] == "terraform":
+                                                                if module_options['module_options']['STAGER-TYPE'] == "terraform":
                                                                     with open(
                                                                             f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
                                                                             'w') as stagerfile:
@@ -1706,7 +1709,7 @@ def main(workspace, particle, module_char):
                                                                         stagerfile.close()
                                                                     del (module_output[AWSregion]['Code'])
                                                                     module_output[AWSregion]['OutPutFile'] = f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}",
-                                                                elif module_output['STAGER-TYPE'] == "golang":
+                                                                elif module_options['module_options']['STAGER-TYPE'] == "golang":
                                                                     with open(
                                                                             f".stagers/{AWSregion}_{module_output[AWSregion]['OutPutFile']}.go",
                                                                             "w") as gofile:
