@@ -2,8 +2,8 @@ import ipaddress
 import re
 import sys
 
+import dns
 from dns import resolver
-
 from __ip_source.AWS_IP_Ranges import AWS_IP_RANGE
 from __ip_source.Azure_IP_Ranges import AZURE_IP_RANGE
 from __ip_source.DOIPRange import DOIPRange
@@ -33,7 +33,7 @@ variables = {
     }
 }
 
-description = "Checks for subdomains of the domain by enumerating certificates from crt.sh"
+description = "The module will look for IP Space of AWS, AZURE, GCP, DigitalOcean and filter by service."
 aws_command = "None"
 
 
@@ -45,6 +45,11 @@ def exploit(workspace):
     ipfile = variables['IP-FILE']['wordlistvalue']
     all_domain = []
     all_ips = []
+
+
+    res = dns.resolver.Resolver()
+    res.timeout = 5
+    res.lifetime = 5
 
     split_by_services = {
         "IP-FILE": ipfilename,
@@ -75,8 +80,10 @@ def exploit(workspace):
                 "Region": "",
                 "Service": ""
             }
+            if "*." in d:
+                continue
             try:
-                resolved_domain = resolver.resolve(d, 'CNAME')[0].to_text()
+                resolved_domain = res.resolve(d, 'CNAME')[0].to_text()
                 singlehost["Resolved"] = resolved_domain
                 vendor = findDomainVendor(resolved_domain)
                 if vendor is not None:
@@ -89,7 +96,7 @@ def exploit(workspace):
 
             except resolver.NoAnswer:
                 try:
-                    resolved_domain = resolver.resolve(d, 'A')[0].to_text()
+                    resolved_domain = res.resolve(d, 'A')[0].to_text()
 
                     singlehost["Resolved"] = resolved_domain
                     vendor = findIPVendor(resolved_domain)
@@ -106,22 +113,44 @@ def exploit(workspace):
                         split_by_services["Vendors"]["NoVendor"].append(singlehost)
 
                 except resolver.NoAnswer:
-                    resolved_domain = resolver.resolve(d, 'AAAA')[0].to_text()
-                    singlehost["Resolved"] = resolved_domain
-                    vendor = findIPVendor(resolved_domain)
-                    if vendor is not None:
-                        if vendor[0] == "DigitalOcean":
-                            singlehost["Service"] = "droplet"
-                        else:
+                    try:
+                        resolved_domain = res.resolve(d, 'AAAA')[0].to_text()
+                        singlehost["Resolved"] = resolved_domain
+                        vendor = findIPVendor(resolved_domain)
+                        if vendor is not None:
+                            if vendor[0] == "DigitalOcean":
+                                singlehost["Service"] = "droplet"
+                            else:
+                                singlehost["Service"] = vendor[2]
+                            singlehost["Region"] = vendor[1]
                             singlehost["Service"] = vendor[2]
-                        singlehost["Region"] = vendor[1]
-                        singlehost["Service"] = vendor[2]
-                        split_by_services["Vendors"][vendor[0]].append(singlehost)
+                            split_by_services["Vendors"][vendor[0]].append(singlehost)
 
-                    else:
+                        else:
+                            split_by_services["Vendors"]["NoVendor"].append(singlehost)
+                    except:# resolver.NoAnswer:
                         split_by_services["Vendors"]["NoVendor"].append(singlehost)
+                except dns.resolver.LifetimeTimeout:
+                    singlehost["Resolved"] = "Noresolve"
+                    singlehost["Service"] = None
+
+                    split_by_services["Vendors"]["NoVendor"].append(singlehost)
+                except:
+                    singlehost["Resolved"] = "Noresolve"
+                    singlehost["Service"] = None
 
             except resolver.NXDOMAIN:
+                singlehost["Resolved"] = "Noresolve"
+                singlehost["Service"] = None
+
+                split_by_services["Vendors"]["NoVendor"].append(singlehost)
+
+            except dns.resolver.LifetimeTimeout:
+                singlehost["Resolved"] = "Noresolve"
+                singlehost["Service"] = None
+
+                split_by_services["Vendors"]["NoVendor"].append(singlehost)
+            except:
                 singlehost["Resolved"] = "Noresolve"
                 singlehost["Service"] = None
 
@@ -157,20 +186,24 @@ def exploit(workspace):
         }, 200
 
     except Exception as e:
+        print(sys.exc_info())
         return {"error": str(e)}, 500
 
 
 def findDomainVendor(host):
+    res = dns.resolver.Resolver()
+    res.timeout = 5
+    res.lifetime = 5
     if "amazonaws.com" in host:
-        return findAWSService(resolver.resolve(host, 'A')[0].to_text())
+        return findAWSService(res.resolve(host, 'A')[0].to_text())
     elif "azure" in host or "windows" in host:
-        return findAzureService(resolver.resolve(host, 'A')[0].to_text())
+        return findAzureService(res.resolve(host, 'A')[0].to_text())
     elif "google" in host:
-        return findGCPService(resolver.resolve(host, 'A')[0].to_text())
+        return findGCPService(res.resolve(host, 'A')[0].to_text())
     elif "digitalocean" in host:
         servicelist = findDODomain(host)
         if servicelist[1] is None:
-            region = findDOService(resolver.resolve(host, 'A')[0].to_text())
+            region = findDOService(res.resolve(host, 'A')[0].to_text())
             if region is not None:
                 servicelist[1] = region[1]
         return servicelist

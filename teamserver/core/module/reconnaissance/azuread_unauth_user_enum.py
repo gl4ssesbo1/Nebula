@@ -1,4 +1,5 @@
 import json
+import os.path
 
 import flask_mongoengine
 import requests
@@ -40,9 +41,11 @@ aws_command = "No awscli command"
 
 def exploit(workspace):
 	userfile = variables['WORDLIST']['value']
+	theuserfile = variables['WORDLIST']['wordlistvalue']
 	email = variables['EMAIL']['value']
 	all_output = []
 	single_user_info = {}
+	print(os.path.exists(userfile))
 
 	if not email == "" and not userfile == "":
 		return {"error": colored("[*] Only add a username or a user file. Not both.", "red")}, 500
@@ -86,8 +89,8 @@ def exploit(workspace):
 		return {"azure_user_email": {"azure_user_email": "User '{0}' does not exist".format(email)}}, 200
 
 	elif not userfile == "":
-		theuserfile = open(userfile, 'r')
-		for useremail in theuserfile.readlines():
+		#theuserfile = open(userfile.replace("\n", ""), 'r')
+		for useremail in theuserfile:
 			useremail = useremail.replace("\n","").strip()
 			url = "https://login.microsoftonline.com/common/GetCredentialType"
 			data = '{"Username": "' + useremail + '"}'

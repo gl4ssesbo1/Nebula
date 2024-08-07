@@ -83,14 +83,14 @@ def exploit(profile, workspace):
             awscredentials = AWSCredentials.objects.get(aws_access_key=json_data['aws_access_key'])
             awscredentials.delete()
             awscredentials.save(**json_data)
-            return_data['ProfileSaved'] = f"Saved profile to Database: {str(e)}"
+            return_data['ProfileSaved'] = f"Saved profile {json_data['aws_profile_name']} to Database"
 
-        except flask_mongoengine.DoesNotExist:
+        except flask_mongoengine.DoesNotExist as e:
             AWSCredentials(**json_data).save()
-            return_data['ProfileSaved'] = f"Saved profile to Database: {str(e)}"
+            return_data['ProfileSaved'] = f"Saved profile {json_data['aws_profile_name']} to Database"
 
         except Exception as e:
-            return_data['ProfileSaved'] = f"Error saving profile to Database: {str(e)}"
+            return_data['ProfileSaved'] = f"Error saving profile {json_data['aws_profile_name']} to Database: {str(e)}"
 
         return_data['AccessKeyStatus'] = f"Credentials {response['AccessKey']['AccessKeyId']}:{response['AccessKey']['SecretAccessKey']} Created"
     except Exception as e:

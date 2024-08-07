@@ -52,21 +52,16 @@ def exploit(profile, workspace):
         }
         all_objects = []
         try:
-            all_versions = profile.list_object_versions(Bucket=bucket)
-            for marker in all_versions['DeleteMarkers']:
-                deleted_files.append(marker['Key'])
-
-            for version in all_versions['Versions']:
-                if version['Key'] in deleted_files:
+            all_versions = profile.list_objects_v2(Bucket=bucket)
+            if "Contents" in all_versions:
+                for key in all_versions['Contents']:
                     all_objects = {
-                        "Owner": version['Owner']['DisplayName'],
-                        "Key": version["Key"],
-                        "VersionID": version['VersionId'],
-                        "LastModified": str(version['LastModified']),
-                        "IsLatest": version['IsLatest']
+                        "Owner": key['Owner']['DisplayName'],
+                        "Key": key["Key"],
+                        "LastModified": str(key['LastModified'])
                     }
 
-            return_dict['DeletedFiles'] = all_objects
+            return_dict['Objects'] = all_objects
 
             allbuckets.append(return_dict)
 

