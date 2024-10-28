@@ -43,6 +43,7 @@ parser.add_argument('-dn', '--databaseName', type=str, help='The MongoDB Databas
 parser.add_argument('-du', '--databaseUser', type=str, help='The MongoDB Database User Name.')
 parser.add_argument('-dp', '--databasePassword', type=str, help='The MongoDB Database Password.')
 parser.add_argument('-p', '--password', type=str, help='The password for user \'cosmonaut\'. (Required)')
+parser.add_argument('-y', '--yes', action="store_true", help='If this is set, the check for the database port will be skipped.')
 #parser.add_argument('-c', '--config-file', type=str, help='The config file path with the configs.')
 args = parser.parse_args()
 
@@ -67,9 +68,13 @@ database = args.databaseName
 
 if args.databaseUser is not None:
     databaseUser = args.databaseUser
+else:
+    databaseUser = None
 
 if args.databasePassword is not None:
     databasePassword = args.databasePassword
+else:
+    databasePassword = None
 
 all_count = 0
 show = [
@@ -244,7 +249,7 @@ try:
     #location = (host, port)
     #result_of_check = a_socket.connect_ex(location)
     result_of_check = 0
-    if result_of_check == 0:
+    if result_of_check == 0 and not args.yes:
         mongo_instance_verify = input(colored("[*] Port is busy. Is a MongoDB instance running there? [y/N] ", "red"))
         if not mongo_instance_verify.strip().replace("\n", "") == 'y' and not mongo_instance_verify.strip().replace(
                 "\n", "") == 'Y':
@@ -286,7 +291,7 @@ try:
             colored(container.id, "blue")
         ))
         '''
-    if databaseUser:
+    if databaseUser is not None:
         if re.match(IPv4_REGEX, host) or re.match(IPv6_REGEX, host):
             app.config['MONGODB_SETTINGS'] = {
                 'host': f'mongodb://{databaseUser}:{databasePassword}@{host}:{port}/{database}'
