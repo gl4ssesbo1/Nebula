@@ -52,7 +52,7 @@ msal
 websockets
 python-socketio
 #operator
-waitress
+#waitress
 flask_jwt_extended
 flask_bcrypt
 websocket_server
