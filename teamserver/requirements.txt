@@ -25,7 +25,8 @@ pytz==2020.1
 six==1.15.0
 Werkzeug
 flask_httpauth
-waitress==2.1.2
+#waitress==2.1.2
+waitress>=3.0.1
 flask-mongoengine
 docker~=5.0.3
 flask_bcrypt
